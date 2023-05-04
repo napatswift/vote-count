@@ -26,8 +26,9 @@ political_parties_th = ['ประชาธิปัตย์', 'ประชา
 # create a augmentation pipeline to mimick the real world data
 seq = iaa.Sequential([
     # Add perspective transformations to mimic skewed or rotated documents
-    iaa.PerspectiveTransform(scale=(0.01, 0.1), fit_output=True),
-    iaa.Pad(px=(0, 30), pad_mode='constant', pad_cval=(0, 255)),
+    iaa.Sometimes(0.3, iaa.PerspectiveTransform(scale=(0.01, 0.05), fit_output=True)),
+    iaa.Sometimes(0.3, iaa.PerspectiveTransform(scale=(0.01, 0.1),)),
+    iaa.Pad(px=(0, 20), pad_mode='constant', pad_cval=(0, 255)),
     # Apply random cropping to mimic imperfect alignment or framing
     iaa.Crop(px=(0, 30)),
     # Perturb the colors by adjusting brightness, adding noise, etc.
@@ -37,9 +38,9 @@ seq = iaa.Sequential([
     ]),
     # Apply affine transformations (shearing, rotation, etc.)
     iaa.SomeOf((0, 2), [
-        iaa.ShearX((-16, 16), fit_output=True, cval=(0, 255)),
-        iaa.ShearY((-16, 16), fit_output=True, cval=(0, 255)),
-        iaa.Rotate((-20, 20), fit_output=True, cval=(0, 255)),
+        iaa.ShearX((-5, 5), fit_output=True, cval=(0, 255)),
+        iaa.ShearY((-5, 5), fit_output=True, cval=(0, 255)),
+        iaa.Rotate((-5, 5), fit_output=True, cval=(0, 255)),
     ]),
 ])
 
@@ -87,7 +88,6 @@ class RandomFont:
 
 def arabic2th(n):
     return chr(ord(n)+(ord('๑')-ord('1')))
-
 
 def unit_process(val):
     # https://suilad.wordpress.com/2012/05/09/code-python-%E0%B9%81%E0%B8%9B%E0%B8%A5%E0%B8%87%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%A5%E0%B8%82-%E0%B9%84%E0%B8%9B%E0%B9%80%E0%B8%9B%E0%B9%87%E0%B8%99-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%AB/
@@ -223,6 +223,75 @@ text_templates = ["""
 {number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
 %%table
 ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
+""",
+"""
+%%table
+หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{lastname_th_handwriting}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_reading_number_handwriting_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
+""",
+"""
+%%table
+หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{lastname_th_handwriting}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th_handwriting}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting
+{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_reading_number_handwriting_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
+""",
+"""
+
+
+\t\t\t\t\tรายงานผลการนับคะแนนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้ง
+\t\t\t\t\t\t\t\t\t-----------------------------------
+\tตามที่ได้มีพระราชกฤษฎีกาให้มีการเลือกตั้งสมาชิกสภาผู้แทนราษฎรและคณะกรรมการการเลือกตั้งได้กำหนดให้วันที่ {date_th} เดือน {month_th} พ.ศ. {year_th} เป็นวันเลือกตั้ง
+\tบัดนี้ คณะกรรมการประจำหน่วยเลือกตั้งใด้ดำเนินการนับคะแบนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้งของหน่วยเลือกตั้งที่ {number_handwriting} หมู่ที่ {number_handwriting} ตำบล/เทศบาล {tambon_name_handwriting_th} อำเภอ {amphoe_handwriting_th} เขตเลือกตั้งที่ {number_th} จังหวัด {province_th} เสร็จสิ้นเป็นที่เรียบร้อยแล้ว ดังนั้น จึงขอรายงานผลการนับคะแนนของหน่วยเลือกตั้งดังกล่าว ดังนี้
+\t๑. จำนวนผู้มีสิทธิเลือกตั้ง
+\t\t๑.๑ จำนวนผู้มีสิทธิเลือกตั้งตามบัญชีรายชื่อผู้มิสิทธิเลือกตั้ง {number_handwriting} คน
+({number_reading_handwriting_th})
+\t\t๑.๒ จำนวนผู้มีสิทธิเลือกตั้งที่มาแสดงตน {number_handwriting} คน ({number_reading_handwriting_th}) (เฉพาะวันเลือกตั้ง)
+\t๒. จำนวนบัตรเลือกตั้ง
+\t\t๒.๑ จำนวนบัตรเลือกตั้งที่ได้รับจัดสรร {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t\t\t๒.๒.๑ บัตรดี {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t\t๒.๒ จำนวนบัตรเลือกตั้งที่ใช้ {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t\t\t๒.๒.๓ บัตรไม่เลือกผู้สมัครใด {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t\t๒.๓ จำนวนบัตรเลือกตั้งที่เหลือ {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t\t\t๒.๒.๒ บัตรเสีย {number_handwriting} บัตร ({number_reading_handwriting_th})
+\t๓. จำนวนคะแนนที่ผู้สมัครรับเลือกตั้งแต่ละคนได้รับเรียงตามลำดับหมายเลขประจำตัวผู้สมัคร
+
+%%table
+หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
 """
 ]
 
@@ -242,9 +311,9 @@ def get_tokens():
 
 def _main(file_saver):#create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
-    table_mask = Image.new('L', (image_width, image_height,), '#000')
+    # table_mask = Image.new('L', (image_width, image_height,), '#000')
     draw = ImageDraw.Draw(image,)
-    table_draw = ImageDraw.Draw(table_mask,)
+    # table_draw = ImageDraw.Draw(table_mask,)
 
     pen_color = random.choice(['#000F55', '#383b3e', '#ac3235'])
     sarabun_font = fonts['sarabun'].get()
@@ -273,6 +342,7 @@ def _main(file_saver):#create blank white paper
             dot_count = 30
             if 'handwriting' in token:
                 font_type = 'handwriting'
+
             if 'tambon' in token:
                 token = tambon.TAMBON_T.item().replace('ต.','')
             elif 'amphoe' in token:
@@ -292,7 +362,7 @@ def _main(file_saver):#create blank white paper
                 dot_count = 10
                 if 'reading' in token:
                     number = thai_num2text(number)
-                    dot_count = 50
+                    dot_count = random.randint(40,60)
                 elif 'th' in token:
                     number = str(number)
                     number = ''.join([arabic2th(n) for n in number])
@@ -402,7 +472,7 @@ def _main(file_saver):#create blank white paper
                     row_x0, row_y0 = row_start
                     row_x1, row_y1 = curr_x, row_max_y
                     draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#000')
-                    table_draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#fff', width=4)
+                    # table_draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#fff', width=4)
                     # table_keypoints.append((row_x0, row_y0))
                     # table_keypoints.append((row_x1, row_y0))
                     # table_keypoints.append((row_x0, row_y1))
@@ -478,7 +548,7 @@ def _main(file_saver):#create blank white paper
 
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]   ``
     np_image = augment_image(np.array(image))
-    total_copy = random.randint(1, 5)
+    total_copy = random.randint(1, 3)
     (
         aug_images,
         aug_bboxes,
@@ -496,7 +566,7 @@ def _main(file_saver):#create blank white paper
 
     # save augmented images
     for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
-        file_saver.save(aug_image, aug_bbox)
+        file_saver.save(aug_image, aug_bbox.remove_out_of_image_fraction(0.7).clip_out_of_image())
 
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
@@ -613,6 +683,7 @@ class MMOCRFileSaver(FileSaver):
         })
 
         self.image_id += 1
+
     def _get_polygon(self, keypoints):
         """Get polygon from keypoints."""
 
@@ -620,6 +691,7 @@ class MMOCRFileSaver(FileSaver):
         for point in keypoints:
             points.append(point.x_int)
             points.append(point.y_int)
+        assert len(points) == 8
         return points
     
     def clean(self, json_path):

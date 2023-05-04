@@ -35,7 +35,7 @@ def concat_dataset(json_1: str, json_2, dest):
   
   print('concat dataset: size of {}'.format(len(data_list)))
 
-  return dict(meta_info=metadata, data_list=data_list)
+  return dict(metainfo=metadata, data_list=data_list)
 
 def move_image_file(source, dest, data_list):
   out_dir = os.path.join(dest, 'imgs', source)
