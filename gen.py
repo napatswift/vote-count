@@ -13,6 +13,7 @@ from tqdm import trange
 import numpy as np
 import cv2
 import json
+import argparse
 
 last_names_th = open('family_names_th.txt').read().split('\n')[:-1]
 names_th = open('female_names_th.txt').read().split('\n')[:-1]
@@ -475,7 +476,7 @@ def _main(file_saver):#create blank white paper
         if not x['text']: continue
         bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), label=''.join(x['text'])))
 
-    # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
+    # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]   ``
     np_image = augment_image(np.array(image))
     total_copy = random.randint(1, 5)
     (
@@ -490,9 +491,12 @@ def _main(file_saver):#create blank white paper
         # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(total_copy)]
     )
 
+    # save non-augmented image
     file_saver.save(np_image, BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape))
-    # for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
-    #     file_saver.save(aug_image, aug_bbox)
+
+    # save augmented images
+    for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
+        file_saver.save(aug_image, aug_bbox)
 
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
@@ -627,11 +631,16 @@ class MMOCRFileSaver(FileSaver):
 
 
 if __name__ == '__main__':
-    output_dir = 'output/vc-dataset'
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('--output_dir', type=str, default='vc-dataset')
+    argparser.add_argument('--num', type=int, required=True)
+    
+    args = argparser.parse_args()
+    output_dir = os.path.join('output',args.output_dir)
     file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
                            os.path.join(output_dir))
     try:
-        for x in trange(2):
+        for x in trange(args.num):
             _main(file_saver)
     except KeyboardInterrupt:
         pass
