@@ -55,13 +55,12 @@ def augment_image(image):
 class BBox:
     def __init__(self, x0=None, y0=None, x1=None, y1=None):
         self.x0 = x0
-        self.x1 = y0
-        self.y0 = x1
+        self.y0 = y0
+        self.x1 = x1
         self.y1 = y1
-        pass
 
     def merge(self, x0, y0, x1, y1):
-        if self.x0 is None:
+        if self.x0 is None or self.y0 is None or self.x1 is None or self.y1 is None:
             self.x0 = x0
             self.x1 = x1
             self.y0 = y0
@@ -341,43 +340,60 @@ def _main(file_saver):#create blank white paper
                 for col_j, (col_size, cell_tokens) in enumerate(zip(table_column_size, row)):
                     cell_width = col_size * table_width
                     lines = []
+                    
+                    # `text_1` is for handwriting text
                     lines.append({'text': '', 'text_1': None})
                     for token in cell_tokens:
+                        # If the token is a separator, add a new line
                         if token['text'] == '<sep>':
                             lines.append({'text': '', 'text_1': None})
+                        # Otherwise, append the token's text to the current line
                         else:
                             lines[-1]['text'] += token['text']
-                            if token['text_1'] is None:
-                                continue
-                            if lines[-1]['text_1'] is None :
-                                lines[-1]['text_1'] = token['text_1']
-                            else:
-                                lines[-1]['text_1'] += token['text_1']
+                            # If the token has handwriting text, append it to the current line
+                            if token['text_1'] is not None:
+                                if lines[-1]['text_1'] is None :
+                                    lines[-1]['text_1'] = token['text_1']
+                                else:
+                                    lines[-1]['text_1'] += token['text_1']
 
                     temp_y = curr_y
                     for line in lines:
                         x0,y0,x1,y1 = draw.textbbox((curr_x+5, curr_y+5), line['text'], font=font)
-                        align_center = True
+                        align_center = random.random() < 0.5
                         if align_center:
                             # center
                             x0 = curr_x + cell_width / 2 - (x1-x0)/2
                         else:
                             # not center
                             x0 = curr_x+5
+
+                        # draw text to image
                         draw.text((x0, curr_y+5,), line['text'], '#000', font=font)
+                        # get text bbox
                         x0,y0,x1,y1 = draw.textbbox((x0, curr_y+5,), line['text'], font=font)
-                        bbox = BBox(x0,y0,x1,y1)
+                        # add text bbox to list
                         text_bboxes.append({'text': [line['text']], 'bbox': BBox(x0,y0,x1,y1)})
+
+                        # handwriting text
                         if line['text_1']:
+                            # get handwriting font
                             hfont = fonts['handwriting'].get()
+                            # get text width
                             text_width = hfont.getlength(line['text_1'])
-                            xy_pos = (random.randint(int(x0), max(int(x0), int(x1-text_width)-10)),
-                                    random.randint(curr_y-5, curr_y+2))
+                            xy_pos = (
+                                # randomly select an integer between the values of `x0` and `x1-text_width`-10.
+                                random.randint(int(x0), max(int(x0), int(x1-text_width)-10)),
+                                # randomly select an integer between the values of `curr_y-5` and `curr_y+2`.
+                                random.randint(curr_y-5, curr_y+2))
+                            # draw text with handwriting font
                             draw.text(xy_pos, line['text_1'], '#000', font=hfont)
+                            # get text bounding box
                             x0,y0,x1,y1 = draw.textbbox(xy_pos, line['text_1'], font=hfont)
+                            # append to text_bboxes
                             text_bboxes.append({'text': [line['text_1']], 'bbox': BBox(x0,y0,x1,y1)})
                         curr_y += _line_height
-
+                    
                     row_max_y = max(row_max_y, curr_y+10)
 
                     curr_y = temp_y
@@ -456,8 +472,8 @@ def _main(file_saver):#create blank white paper
 
     bboxes_on_image = []
     for x in text_bboxes:
-        if x['text']:
-            bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), ''.join(x['text'])))
+        if not x['text']: continue
+        bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), label=''.join(x['text'])))
 
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
     np_image = augment_image(np.array(image))
@@ -474,8 +490,9 @@ def _main(file_saver):#create blank white paper
         # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(total_copy)]
     )
 
-    for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
-        file_saver.save(aug_image, aug_bbox)
+    file_saver.save(np_image, BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape))
+    # for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
+    #     file_saver.save(aug_image, aug_bbox)
 
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
@@ -614,7 +631,7 @@ if __name__ == '__main__':
     file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
                            os.path.join(output_dir))
     try:
-        for x in trange(2000):
+        for x in trange(2):
             _main(file_saver)
     except KeyboardInterrupt:
         pass
