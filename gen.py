@@ -20,24 +20,24 @@ months_th = ['มกราคม', 'กุมภาพันธ์', 'มีน�
 political_parties_th = ['ประชาธิปัตย์', 'ประชากรไทย', 'ความหวังใหม่', 'เครือข่ายชาวนาแห่งประเทศไทย', 'เพื่อไทย', 'เพื่อแผ่นดิน', 'ชาติพัฒนา', 'ชาติไทยพัฒนา', 'อนาคตไทย', 'ภูมิใจไทย', 'สังคมประชาธิปไตยไทย', 'ประชาสามัคคี', 'ประชาธิปไตยใหม่', 'พลังชล', 'ครูไทยเพื่อประชาชน', 'พลังสหกรณ์', 'พลังท้องถิ่นไท', 'ถิ่นกาขาวชาววิไล',
                         'รักษ์ผืนป่าประเทศไทย', 'ไทรักธรรม', 'เสรีรวมไทย', 'รักษ์ธรรม', 'เพื่อชาติ', 'พลังประชาธิปไตย', 'ภราดรภาพ', 'พลังไทยรักชาติ', 'เพื่อชีวิตใหม่', 'ก้าวไกล', 'ทางเลือกใหม่', 'ประชาภิวัฒน์', 'พลเมืองไทย', 'พลังไทยนำไทย', 'พลังธรรมใหม่', 'ไทยธรรม', 'ไทยศรีวิไลย์', 'รวมพลังประชาชาติไทย', 'สยามพัฒนา', 'เพื่อคนไทย', 'พลังปวงชนไทย', 'พลังไทยรักไทย']
 
+# create a augmentation pipeline to mimick the real world data
 seq = iaa.Sequential([
-    iaa.PiecewiseAffine(scale=(0.01, 0.03)),
-    iaa.Resize((0.2, 1.0)),
-    iaa.ElasticTransformation(alpha=200, sigma=40),
-    iaa.pillike.EnhanceBrightness(factor=(0.6, 1.5)),
-    iaa.CoarseDropout((0.0005, 0.001), size_percent=0.4),
-    iaa.BlendAlphaMask(
-        iaa.InvertMaskGen(0.5, iaa.VerticalLinearGradientMaskGen()),
-        iaa.GaussianBlur(sigma=(1, 1.6)),
-    ),
-    iaa.pillike.FilterSharpen(5),
-    iaa.Affine(rotate=(-2, 2)),
-    iaa.ElasticTransformation(alpha=200, sigma=90),
-    iaa.AverageBlur(k=(2, 11)),
-    iaa.BlendAlphaMask(
-          iaa.InvertMaskGen(0.8, iaa.VerticalLinearGradientMaskGen()),
-          iaa.MotionBlur(k=(3,5))
-    ),
+    # Add perspective transformations to mimic skewed or rotated documents
+    iaa.PerspectiveTransform(scale=(0.01, 0.1), fit_output=True),
+    iaa.Pad(px=(0, 30), pad_mode='constant', pad_cval=(0, 255)),
+    # Apply random cropping to mimic imperfect alignment or framing
+    iaa.Crop(px=(0, 30)),
+    # Perturb the colors by adjusting brightness, adding noise, etc.
+    iaa.SomeOf((0, 3), [
+        iaa.Multiply((0.3, 1.1)),
+        iaa.GammaContrast(gamma=(0.5, 1)),
+    ]),
+    # Apply affine transformations (shearing, rotation, etc.)
+    iaa.SomeOf((0, 2), [
+        iaa.ShearX((-16, 16), fit_output=True, cval=(0, 255)),
+        iaa.ShearY((-16, 16), fit_output=True, cval=(0, 255)),
+        iaa.Rotate((-20, 20), fit_output=True, cval=(0, 255)),
+    ]),
 ])
 
 class BBox:
@@ -76,11 +76,11 @@ class RandomFont:
 def arabic2th(n):
     return chr(ord(n)+(ord('๑')-ord('1')))
 
-# https://suilad.wordpress.com/2012/05/09/code-python-%E0%B9%81%E0%B8%9B%E0%B8%A5%E0%B8%87%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%A5%E0%B8%82-%E0%B9%84%E0%B8%9B%E0%B9%80%E0%B8%9B%E0%B9%87%E0%B8%99-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%AB/
-thai_number = ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า")
-unit = ("", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน")
 
 def unit_process(val):
+    # https://suilad.wordpress.com/2012/05/09/code-python-%E0%B9%81%E0%B8%9B%E0%B8%A5%E0%B8%87%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%A5%E0%B8%82-%E0%B9%84%E0%B8%9B%E0%B9%80%E0%B8%9B%E0%B9%87%E0%B8%99-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%AB/
+    thai_number = ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า")
+    unit = ("", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน")
     length = len(val) > 1
     result = ''
 
@@ -213,8 +213,8 @@ def get_tokens():
             tokens.append(piece)
     return tokens
 
-def _(image_id):#create blank white paper
-    image = Image.new('RGB', (image_width, image_height,), random.choice(['#00FF7F', 'white']))
+def _main(image_id):#create blank white paper
+    image = Image.new('RGB', (image_width, image_height,), '#fff')
     table_mask = Image.new('L', (image_width, image_height,), '#000')
     draw = ImageDraw.Draw(image,)
     table_draw = ImageDraw.Draw(table_mask,)
@@ -355,18 +355,14 @@ def _(image_id):#create blank white paper
 
                     curr_y = temp_y
                     curr_x += cell_width
-                    draw.rectangle((*row_start, curr_x, row_max_y), outline='#000')
-                    table_draw.rectangle((*row_start, curr_x, row_max_y), outline='#fff')
-                    if row_i == 0:
-                        row_x0, row_y0 = row_start
-                        if col_j == 0:
-                            table_keypoints.append((row_x0, row_y0))
-                        table_keypoints.append((curr_x, row_y0))
-                    elif row_i == len(table_cells) - 1:
-                        if col_j == 0:
-                            row_x0, row_y0 = row_start
-                            table_keypoints.append((row_x0, row_max_y))
-                        table_keypoints.append((curr_x, row_max_y))
+                    row_x0, row_y0 = row_start
+                    row_x1, row_y1 = curr_x, row_max_y
+                    draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#000')
+                    table_draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#fff', width=4)
+                    # table_keypoints.append((row_x0, row_y0))
+                    # table_keypoints.append((row_x1, row_y0))
+                    # table_keypoints.append((row_x0, row_y1))
+                    # table_keypoints.append((row_x1, row_y1))
                 curr_y = row_max_y
             continue
         elif table_flag:
@@ -438,25 +434,33 @@ def _(image_id):#create blank white paper
 
     split = 'training' if random.random() > .2 else 'test'
 
-    image_dir = f'output/dataset/withmask_{split}_images'
+    output_root = f'output/dataset-2'
+
+    image_dir = f'{output_root}/withmask_{split}_images'
     os.makedirs(image_dir, exist_ok=True)
 
-    localization_dir = f'output/dataset/ch4_{split}_localization_transcription_gt'
+    localization_dir = f'{output_root}/{split}_localization_transcription_gt'
     os.makedirs(localization_dir, exist_ok=True)
 
-    keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
+    # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
     np_image = np.array(image)
-    aug_images, aug_bboxes, aug_segmaps = seq(
+    (
+        aug_images,
+        aug_bboxes,
+        aug_segmaps,
+        # aug_keypoints
+     ) = seq(
         images=[np_image for _ in range(5)],
         bounding_boxes=[BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape) for _ in range(5)],
         segmentation_maps=[SegmentationMapsOnImage(np.array(table_mask)[:,:,None], shape=np_image.shape) for _ in range(5)],
-        keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(5)]
+        # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(5)]
     )
 
     for i, (aug_image, aug_bbox, aug_segmap) in enumerate(zip(aug_images, aug_bboxes, aug_segmaps)):
         image_name = f'img_{image_id}{i}'
         cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), aug_image)
-        cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.jpg'), aug_segmap.get_arr())
+        cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), aug_segmap.get_arr())
+        # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
         
         fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
         for bbox in aug_bbox.bounding_boxes:
@@ -468,5 +472,6 @@ def _(image_id):#create blank white paper
             fp.write('\n')
         fp.close()
 
-for x in trange(1):
-    _(x)
+if __name__ == '__main__':
+    for x in trange(10000):
+        _main(x)
