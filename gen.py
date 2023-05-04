@@ -197,6 +197,21 @@ text_templates = ["""
 {number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
 %%table
 ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
+""",
+"""
+%%table
+หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
 """
 ]
 
@@ -433,16 +448,6 @@ def _main(file_saver):#create blank white paper
         if x['text']:
             bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), ''.join(x['text'])))
 
-    split = 'training' if random.random() > .2 else 'test'
-
-    output_root = f'output/dataset-2'
-
-    image_dir = f'{output_root}/withmask_{split}_images'
-    os.makedirs(image_dir, exist_ok=True)
-
-    localization_dir = f'{output_root}/{split}_localization_transcription_gt'
-    os.makedirs(localization_dir, exist_ok=True)
-
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
     np_image = np.array(image)
     (
@@ -460,21 +465,6 @@ def _main(file_saver):#create blank white paper
     for (aug_image, aug_bbox, aug_segmap) in zip(aug_images, aug_bboxes, aug_segmaps):
         file_saver.save(aug_image, aug_bbox, aug_segmap)
 
-def save_in_text_file(image_dir, localization_dir, image_name, image, bbox, segmap=None, ):
-    cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
-    cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
-    # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-    
-    fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
-    for bbox in bbox.bounding_boxes:
-        for point in bbox.to_keypoints():
-            fp.write(str(point.x_int)+',')
-            fp.write(str(point.y_int)+',')
-
-        fp.write(bbox.label)
-        fp.write('\n')
-    fp.close()
-
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
     cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
@@ -491,6 +481,16 @@ def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=N
     fp.close()
 
 class FileSaver:
+    def __init__(self, image_dir, localization_dir):
+        pass
+
+    def save(self, image, bboxes, segmap=None,):
+        pass
+
+    def clean(self, json_path):
+        pass
+
+class TextFileSaver(FileSaver):
     def __init__(self, image_dir, localization_dir):
         self.image_dir = image_dir
         
@@ -522,24 +522,32 @@ class FileSaver:
         fp.close()
 
         self.data_list.append({
-            'file_name': f'{image_name}.jpg',
+            'img_path': f'{image_name}.jpg',
             'height': image.shape[0],
             'width': image.shape[1],
-            'ann': {
-                'bboxes': bboxes.to_xyxy_array().astype(int).tolist(),
-                'labels': [bbox.label for bbox in bboxes.bounding_boxes]
-            }
+            'instances': [
+                {
+                    'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
+                    'text': bbox.label,
+                    'bbox_label': 0, # text
+                    'ignore': False,
+                } for bbox in bboxes.bounding_boxes
+            ]
         })
 
         self.image_id += 1
-    
+
     def clean(self, json_path):
+        return
         with open(json_path, 'w') as fp:
-            json.dump(self.data_list, fp, ensure_ascii=False, indent=2)
+            json.dump(dict(metainfo=dict(dataset_type='TextDetDataset',
+                                         task_name='textdet',
+                                         category=[dict(id=0, name='text')]),
+                           data_list=self.data_list), fp, ensure_ascii=False, indent=2)
 
 if __name__ == '__main__':
     output_dir = 'output/dataset-4'
-    file_saver = FileSaver(os.path.join(output_dir, 'imgs'),
+    file_saver = TextFileSaver(os.path.join(output_dir, 'imgs'),
                            os.path.join(output_dir))
 
     for x in trange(2):
