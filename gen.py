@@ -3,6 +3,7 @@ from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
 from imgaug.augmentables import Keypoint, KeypointsOnImage
 from imgaug import augmenters as iaa
+import augraphy as agh
 import random
 import attacut
 import re
@@ -40,6 +41,16 @@ seq = iaa.Sequential([
         iaa.Rotate((-20, 20), fit_output=True, cval=(0, 255)),
     ]),
 ])
+
+
+def augment_image(image):
+    return agh.AugmentationSequence([
+        agh.Gamma(gamma_range=(0.1, 1.5), p=0.8),
+        agh.LowInkPeriodicLines(p=0.3),
+        agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.5),
+        agh.DirtyDrum(p=0.7)
+    ])(image)[0]
+
 
 class BBox:
     def __init__(self, x0=None, y0=None, x1=None, y1=None):
@@ -449,21 +460,22 @@ def _main(file_saver):#create blank white paper
             bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), ''.join(x['text'])))
 
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]
-    np_image = np.array(image)
+    np_image = augment_image(np.array(image))
+    total_copy = random.randint(1, 5)
     (
         aug_images,
         aug_bboxes,
-        aug_segmaps,
+        # aug_segmaps,
         # aug_keypoints
      ) = seq(
-        images=[np_image for _ in range(5)],
-        bounding_boxes=[BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape) for _ in range(5)],
-        segmentation_maps=[SegmentationMapsOnImage(np.array(table_mask)[:,:,None], shape=np_image.shape) for _ in range(5)],
-        # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(5)]
+        images=[np_image for _ in range(total_copy)],
+        bounding_boxes=[BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
+        # segmentation_maps=[SegmentationMapsOnImage(np.array(table_mask)[:,:,None], shape=np_image.shape) for _ in range(total_copy)],
+        # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(total_copy)]
     )
 
-    for (aug_image, aug_bbox, aug_segmap) in zip(aug_images, aug_bboxes, aug_segmaps):
-        file_saver.save(aug_image, aug_bbox, aug_segmap)
+    for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
+        file_saver.save(aug_image, aug_bbox)
 
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
@@ -539,18 +551,72 @@ class TextFileSaver(FileSaver):
 
     def clean(self, json_path):
         return
+
+class MMOCRFileSaver(FileSaver):
+    def __init__(self, image_dir, localization_dir):
+        self.image_dir = image_dir
+        
+        if not os.path.exists(self.image_dir):
+            os.makedirs(self.image_dir)
+        
+        self.localization_dir = localization_dir
+
+        if not os.path.exists(self.localization_dir):
+            os.makedirs(self.localization_dir)
+
+        self.image_id = 0
+        self.data_list = []
+    
+    def save(self, image, bboxes, segmap=None,):
+        image_name = f'img_{self.image_id}'
+        cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
+
+        if segmap is not None:
+            cv2.imwrite(os.path.join(self.image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+
+        # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
+
+        self.data_list.append({
+            'img_path': f'{image_name}.jpg',
+            'height': image.shape[0],
+            'width': image.shape[1],
+            'instances': [
+                {
+                    'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
+                    'polygon': self._get_polygon(bbox.to_keypoints()),
+                    'text': bbox.label,
+                    'bbox_label': 0, # text
+                    'ignore': False,
+                } for bbox in bboxes.bounding_boxes
+            ]
+        })
+
+        self.image_id += 1
+    def _get_polygon(self, keypoints):
+        """Get polygon from keypoints."""
+
+        points = []
+        for point in keypoints:
+            points.append(point.x_int)
+            points.append(point.y_int)
+        return points
+    
+    def clean(self, json_path):
         with open(json_path, 'w') as fp:
             json.dump(dict(metainfo=dict(dataset_type='TextDetDataset',
                                          task_name='textdet',
                                          category=[dict(id=0, name='text')]),
-                           data_list=self.data_list), fp, ensure_ascii=False, indent=2)
+                           data_list=self.data_list), fp, ensure_ascii=False,)
+
 
 if __name__ == '__main__':
-    output_dir = 'output/dataset-4'
-    file_saver = TextFileSaver(os.path.join(output_dir, 'imgs'),
+    output_dir = 'output/vc-dataset'
+    file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
                            os.path.join(output_dir))
-
-    for x in trange(2):
-        _main(file_saver)
+    try:
+        for x in trange(2000):
+            _main(file_saver)
+    except KeyboardInterrupt:
+        pass
     
     file_saver.clean(os.path.join(output_dir, 'train.json'))
