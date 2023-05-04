@@ -11,6 +11,7 @@ import os
 from tqdm import trange
 import numpy as np
 import cv2
+import json
 
 last_names_th = open('family_names_th.txt').read().split('\n')[:-1]
 names_th = open('female_names_th.txt').read().split('\n')[:-1]
@@ -213,7 +214,7 @@ def get_tokens():
             tokens.append(piece)
     return tokens
 
-def _main(image_id):#create blank white paper
+def _main(file_saver):#create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
     table_mask = Image.new('L', (image_width, image_height,), '#000')
     draw = ImageDraw.Draw(image,)
@@ -456,14 +457,62 @@ def _main(image_id):#create blank white paper
         # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(5)]
     )
 
-    for i, (aug_image, aug_bbox, aug_segmap) in enumerate(zip(aug_images, aug_bboxes, aug_segmaps)):
-        image_name = f'img_{image_id}{i}'
-        cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), aug_image)
-        cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), aug_segmap.get_arr())
+    for (aug_image, aug_bbox, aug_segmap) in zip(aug_images, aug_bboxes, aug_segmaps):
+        file_saver.save(aug_image, aug_bbox, aug_segmap)
+
+def save_in_text_file(image_dir, localization_dir, image_name, image, bbox, segmap=None, ):
+    cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
+    cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+    # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
+    
+    fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
+    for bbox in bbox.bounding_boxes:
+        for point in bbox.to_keypoints():
+            fp.write(str(point.x_int)+',')
+            fp.write(str(point.y_int)+',')
+
+        fp.write(bbox.label)
+        fp.write('\n')
+    fp.close()
+
+def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
+    cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
+    cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+    # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
+    
+    fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
+    for bbox in bbox.bounding_boxes:
+        for point in bbox.to_keypoints():
+            fp.write(str(point.x_int)+',')
+            fp.write(str(point.y_int)+',')
+
+        fp.write(bbox.label)
+        fp.write('\n')
+    fp.close()
+
+class FileSaver:
+    def __init__(self, image_dir, localization_dir):
+        self.image_dir = image_dir
+        
+        if not os.path.exists(self.image_dir):
+            os.makedirs(self.image_dir)
+        
+        self.localization_dir = localization_dir
+
+        if not os.path.exists(self.localization_dir):
+            os.makedirs(self.localization_dir)
+
+        self.image_id = 0
+        self.data_list = []
+    
+    def save(self, image, bboxes, segmap=None,):
+        image_name = f'img_{self.image_id}'
+        cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
+        cv2.imwrite(os.path.join(self.image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
         # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
         
-        fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
-        for bbox in aug_bbox.bounding_boxes:
+        fp = open(os.path.join(self.localization_dir, 'gt_'+image_name+'.txt'), 'w')
+        for bbox in bboxes.bounding_boxes:
             for point in bbox.to_keypoints():
                 fp.write(str(point.x_int)+',')
                 fp.write(str(point.y_int)+',')
@@ -472,6 +521,28 @@ def _main(image_id):#create blank white paper
             fp.write('\n')
         fp.close()
 
+        self.data_list.append({
+            'file_name': f'{image_name}.jpg',
+            'height': image.shape[0],
+            'width': image.shape[1],
+            'ann': {
+                'bboxes': bboxes.to_xyxy_array().astype(int).tolist(),
+                'labels': [bbox.label for bbox in bboxes.bounding_boxes]
+            }
+        })
+
+        self.image_id += 1
+    
+    def clean(self, json_path):
+        with open(json_path, 'w') as fp:
+            json.dump(self.data_list, fp, ensure_ascii=False, indent=2)
+
 if __name__ == '__main__':
-    for x in trange(10000):
-        _main(x)
+    output_dir = 'output/dataset-4'
+    file_saver = FileSaver(os.path.join(output_dir, 'imgs'),
+                           os.path.join(output_dir))
+
+    for x in trange(2):
+        _main(file_saver)
+    
+    file_saver.clean(os.path.join(output_dir, 'train.json'))
