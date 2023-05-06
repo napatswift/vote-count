@@ -55,7 +55,7 @@ def main():
 
     # Display the image.
     cv2.imshow(data['img_path'], img)
-    cv2.waitKey(500)
+    cv2.waitKey(0)
 
 
 if __name__ == '__main__':

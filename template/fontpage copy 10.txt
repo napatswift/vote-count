@@ -1,0 +1,23 @@
+อธิบดีกรมการปกครอง เซ็นคำสั่งย้าย {number_handwriting} ข้าราชการให้ไปช่วยราชการ เซ่นปมปล่อยบ่อนพนันสุราษฎร์ธานี หลังชุดปฏิบัติการพิเศษ เข้าจับนักพนันนับร้อยคน พร้อมของกลาง เงินสดกว่า {number_handwriting} ล้าน
+กรณีชุดปฏิบัติการพิเศษ กรมการปกครองสนธิกำลังเจ้าหน้าที่กว่า {number_handwriting} นาย บุกเข้าทลายบ่อนการพนันขนาดใหญ่อยู่ในพื้นที่ อ.เมืองสุราษฎร์ธานี จับนักพนันได้กว่าร้อยคน พร้อมของกลางกว่า {number_handwriting} ล้านบาท 
+
+วันนี้ ({number_handwriting} พ.ค.{number_handwriting}) ผู้สื่อข่าวรายงานว่า นายแมนรัตน์ รัตนสุคนธ์ อธิบดีกรมการปกครอง ได้มีคำสั่งที่ {number_handwriting}/{number_handwriting} โยกย้ายข้าราชการช่วยราชการ จำนวน {number_handwriting} คน ดังนี้ 
+
+		{title_th}{name_th} {lastname_th_handwriting_th} ปลัด{province_th_handwriting_th} ให้ช่วยราชการ กองการเจ้าหน้าที่ กรมการปกครอง
+		{title_th}{name_th_handwriting_th} {lastname_th} นายอำเภอ{tambon_name_handwriting_th} ช่วยราชการ กองการเจ้าหน้าที่ กรมการปกครอง
+		{title_th}{name_th_handwriting_th} {lastname_th_handwriting_th} ช่วยราชการกองการเจ้าหน้าที่ กรมการปกครอง
+		{title_th}{name_th_handwriting_th} {lastname_th} ที่ทำการปกครองอำเภอเมืองสุราษฎร์ ช่วยราชการกองการเจ้าหน้าที่ กรมการปกครอง
+		{title_th}{name_th} {lastname_th} ปลัดอำเภอที่ทำการปกครองอ.{tambon_name_handwriting_th} ช่วยราชการ กองการเจ้าหน้าที่ กรมการปกครอง
+
+%%table
+ลำดับที่|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง

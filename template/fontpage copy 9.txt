@@ -1,0 +1,16 @@
+{number_handwriting} พ.ค.{number_handwriting} - เวลา {number_handwriting}.{number_handwriting}น. ที่มหาวิทยาลัยรามคำแหง นายแสวง บุญมี เลขาธิการคณะกรรมการการ การเลือกตั้ง (กกต.) พร้อมคณะ ลงพื้นที่ตรวจเยี่ยมหน่วยเลือกตั้งล่วงหน้านอกเขตเลือกตั้ง เขตบางกะปิ โดยตั้งอยู่ภายในบริเวณลานพ่อขุนรามคำแหง มหาวิทยาลัยรามคําแหง เพื่อดูความพร้อมของสถานที่ก่อนที่จะมีการเลือกตั้งล่วงหน้าในวันที่ {number_handwriting} พ.ค.นี้ โดยแสวง กล่าวว่า วันนี้ตนลงพื้นที่ตรวจเยี่ยมให้กำลังใจ และซักซ้อมความเข้าใจกับกรรมการประจำหน่วย (กปน.) โดยผู้อำนวยการประจำหน่วยเลือกตั้งได้แจ้งถึงความพร้อมในด้านต่างๆ ทั้งเรื่องสถานที่ และเอกสารแนะนำตัวผู้สมัคร ทั้งส.ส.แบบแบ่งเขตและส.ส.แบบบัญชีรายชื่อ ซึ่งจะติดไว้บริเวณด้านหน้าและภายในหน่วย นอกจากนี้บริเวณด้านหน้าหน่วยเลือกตั้งได้มีการติดเอกสารของผู้ลงทะเบียนใช้สิทธิเลือกตั้งล่วงหน้าไว้อำนวยความสะดวกกับประชาชนที่จะมาใช้สิทธิในวันที่ {number_handwriting} พ.ค.
+
+%%table
+หมายเลข<sep>ภูมิลำเนา|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|เลขไปรษณีย์ไทย<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+
+นายแสวง กล่าวว่า เนื่องจากสภาพอากาศในช่วงนี้มีอุณหภูมิที่ร้อนจัดจึงได้กำชับให้หน่วยเลือกตั้งทุกหน่วยจัดเตรียมพัดลมรวมถึงน้ำดื่มให้กับประชาชน นอกจากนี้ยังมีรถพยาบาลรถกู้ภัยเพื่อป้องกันเหตุฉุกเฉิน โดยในวันพรุ่งนี้ ({number_handwriting} พ.ค.) เจ้าหน้าที่จะมีการตรวจรับบัตรและหีบเลือกตั้ง ก่อนจะนำมาไว้ที่หน่วยเลือกตั้งช่วงเช้ามืดในวันที่ {number_handwriting} พ.ค. ซึ่งทันก่อนการเปิดหีบในช่วงเวลา {number_handwriting}.{number_handwriting}น.

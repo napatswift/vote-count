@@ -49,8 +49,9 @@ def augment_image(image):
     return agh.AugmentationSequence([
         agh.Gamma(gamma_range=(0.1, 1.5), p=0.8),
         agh.LowInkPeriodicLines(p=0.3),
-        agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.5),
-        agh.DirtyDrum(p=0.7)
+        agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
+        agh.DirtyDrum(p=0.7),
+        agh.PencilScribbles(size_range=(10,100), count_range=(1, 3), p=0.5),
     ])(image)[0]
 
 
@@ -125,197 +126,40 @@ fonts = {'sarabun':RandomFont('formal'), 'handwriting': RandomFont('handwriting'
 image_width = 826
 image_height = 1169
 
-text_templates = ["""
+class TextTemplate:
+    def __init__(self) -> None:
+        self.template_files = [os.path.join('template', f) for f in os.listdir('template') if f.endswith('.txt')]
+        random.shuffle(self.template_files)
+        self.current_idx = 0
 
+    def gen(self,):
+        template_file = self.template_files[self.current_idx]
+        self.current_idx = (self.current_idx + 1) % len(self.template_files)
+        with open(template_file, 'r', encoding='utf-8') as f:
+            template = f.read()
 
-\t\t\t\t\tรายงานผลการนับคะแนนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้ง
-\t\t\t\t\t\t\t\t\t-----------------------------------
-\tตามที่ได้มีพระราชกฤษฎีกาให้มีการเลือกตั้งสมาชิกสภาผู้แทนราษฎรและคณะกรรมการการเลือกตั้งได้กำหนดให้วันที่ {date_th} เดือน {month_th} พ.ศ. {year_th} เป็นวันเลือกตั้ง
-\tบัดนี้ คณะกรรมการประจำหน่วยเลือกตั้งใด้ดำเนินการนับคะแบนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้งของหน่วยเลือกตั้งที่ {number_handwriting} หมู่ที่ {number_handwriting} ตำบล/เทศบาล {tambon_name_handwriting_th} อำเภอ {amphoe_handwriting_th} เขตเลือกตั้งที่ {number_th} จังหวัด {province_th} เสร็จสิ้นเป็นที่เรียบร้อยแล้ว ดังนั้น จึงขอรายงานผลการนับคะแนนของหน่วยเลือกตั้งดังกล่าว ดังนี้
-\t๑. จำนวนผู้มีสิทธิเลือกตั้ง
-\t\t๑.๑ จำนวนผู้มีสิทธิเลือกตั้งตามบัญชีรายชื่อผู้มิสิทธิเลือกตั้ง {number_handwriting} คน
-({number_reading_handwriting_th})
-\t\t๑.๒ จำนวนผู้มีสิทธิเลือกตั้งที่มาแสดงตน {number_handwriting} คน ({number_reading_handwriting_th}) (เฉพาะวันเลือกตั้ง)
-\t๒. จำนวนบัตรเลือกตั้ง
-\t\t๒.๑ จำนวนบัตรเลือกตั้งที่ได้รับจัดสรร {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t๒.๒ จำนวนบัตรเลือกตั้งที่ใช้ {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๑ บัตรดี {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๒ บัตรเสีย {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๓ บัตรไม่เลือกผู้สมัครใด {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t๒.๓ จำนวนบัตรเลือกตั้งที่เหลือ {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t๓. จำนวนคะแนนที่ผู้สมัครรับเลือกตั้งแต่ละคนได้รับเรียงตามลำดับหมายเลขประจำตัวผู้สมัคร
+        return self._get_tokens(template)
 
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{lastname_th_handwriting}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_reading_number_handwriting_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{lastname_th_handwriting}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th_handwriting}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting
-{number_th}|{name_th_handwriting}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}
-{number_handwriting}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_reading_number_handwriting_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-""",
-"""
+    def _get_tokens(self, text_template):
+        big_pieces = re.split('(\<[^\>]*\>|\t|\n| |\{[^\}]*\}|%%\w+|\|)', text_template)
+        tokens = []
 
+        for piece in big_pieces:
+            if re.findall('[\u0E00-\u0E0F]+', piece):
+                tokens.extend(attacut.tokenize(piece))
+            elif piece == '':
+                continue
+            else:
+                tokens.append(piece)
+        return tokens
 
-\t\t\t\t\tรายงานผลการนับคะแนนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้ง
-\t\t\t\t\t\t\t\t\t-----------------------------------
-\tตามที่ได้มีพระราชกฤษฎีกาให้มีการเลือกตั้งสมาชิกสภาผู้แทนราษฎรและคณะกรรมการการเลือกตั้งได้กำหนดให้วันที่ {date_th} เดือน {month_th} พ.ศ. {year_th} เป็นวันเลือกตั้ง
-\tบัดนี้ คณะกรรมการประจำหน่วยเลือกตั้งใด้ดำเนินการนับคะแบนสมาชิกสภาผู้แทนราษฎรแบบแบ่งเขตเลือกตั้งของหน่วยเลือกตั้งที่ {number_handwriting} หมู่ที่ {number_handwriting} ตำบล/เทศบาล {tambon_name_handwriting_th} อำเภอ {amphoe_handwriting_th} เขตเลือกตั้งที่ {number_th} จังหวัด {province_th} เสร็จสิ้นเป็นที่เรียบร้อยแล้ว ดังนั้น จึงขอรายงานผลการนับคะแนนของหน่วยเลือกตั้งดังกล่าว ดังนี้
-\t๑. จำนวนผู้มีสิทธิเลือกตั้ง
-\t\t๑.๑ จำนวนผู้มีสิทธิเลือกตั้งตามบัญชีรายชื่อผู้มิสิทธิเลือกตั้ง {number_handwriting} คน
-({number_reading_handwriting_th})
-\t\t๑.๒ จำนวนผู้มีสิทธิเลือกตั้งที่มาแสดงตน {number_handwriting} คน ({number_reading_handwriting_th}) (เฉพาะวันเลือกตั้ง)
-\t๒. จำนวนบัตรเลือกตั้ง
-\t\t๒.๑ จำนวนบัตรเลือกตั้งที่ได้รับจัดสรร {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๑ บัตรดี {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t๒.๒ จำนวนบัตรเลือกตั้งที่ใช้ {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๓ บัตรไม่เลือกผู้สมัครใด {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t๒.๓ จำนวนบัตรเลือกตั้งที่เหลือ {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t\t\t๒.๒.๒ บัตรเสีย {number_handwriting} บัตร ({number_reading_handwriting_th})
-\t๓. จำนวนคะแนนที่ผู้สมัครรับเลือกตั้งแต่ละคนได้รับเรียงตามลำดับหมายเลขประจำตัวผู้สมัคร
-
-%%table
-หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-%%table
-ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
-"""
-]
-
-def get_tokens():
-    text_template = random.choice(text_templates)
-    big_pieces = re.split('(\<[^\>]*\>|\t|\n| |\{[^\}]*\}|%%\w+|\|)', text_template)
-    tokens = []
-
-    for piece in big_pieces:
-        if re.findall('[\u0E00-\u0E0F]+', piece):
-            tokens.extend(attacut.tokenize(piece))
-        elif piece == '':
-            continue
-        else:
-            tokens.append(piece)
-    return tokens
-
-def _main(file_saver):#create blank white paper
+def _main(file_saver, text_template_generator):
+    #create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
-    # table_mask = Image.new('L', (image_width, image_height,), '#000')
     draw = ImageDraw.Draw(image,)
-    # table_draw = ImageDraw.Draw(table_mask,)
 
     pen_color = random.choice(['#000F55', '#383b3e', '#ac3235'])
+
     sarabun_font = fonts['sarabun'].get()
 
     start_y = 10
@@ -334,7 +178,7 @@ def _main(file_saver):#create blank white paper
     table_flag = False
     table_cells = []
     table_keypoints = []
-    for token in get_tokens():
+    for token in text_template_generator.gen():
         font_type = 'sarabun'
         font_color = '#000'
         handwriting_text = ''
@@ -540,10 +384,17 @@ def _main(file_saver):#create blank white paper
             temp_token['bbox'].merge(x0,y0,x1,y1)
 
         curr_x = x1
+    
+    if temp_token not in text_bboxes:
+        text_bboxes.append(temp_token)
 
     bboxes_on_image = []
     for x in text_bboxes:
         if not x['text']: continue
+        
+        # if text is `(...)` with any number of `.` in between, then ignore it.
+        if re.match(r'\(\.*\)', ''.join(x['text'])): continue
+
         bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), label=''.join(x['text'])))
 
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]   ``
@@ -644,6 +495,8 @@ class TextFileSaver(FileSaver):
         return
 
 class MMOCRFileSaver(FileSaver):
+    """https://mmocr.readthedocs.io/en/dev-1.x/api/generated/mmocr.datasets.OCRDataset.html#mmocr.datasets.OCRDataset"""
+
     def __init__(self, image_dir, localization_dir):
         self.image_dir = image_dir
         
@@ -666,20 +519,22 @@ class MMOCRFileSaver(FileSaver):
             cv2.imwrite(os.path.join(self.image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
 
         # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
+        
+        text_instances = [
+            {
+                'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
+                'polygon': self._get_polygon(bbox.to_keypoints()),
+                'text': bbox.label,
+                'bbox_label': 0, # text
+                'ignore': False,
+            } for bbox in bboxes.bounding_boxes
+        ]
 
         self.data_list.append({
-            'img_path': f'{image_name}.jpg',
-            'height': image.shape[0],
-            'width': image.shape[1],
-            'instances': [
-                {
-                    'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
-                    'polygon': self._get_polygon(bbox.to_keypoints()),
-                    'text': bbox.label,
-                    'bbox_label': 0, # text
-                    'ignore': False,
-                } for bbox in bboxes.bounding_boxes
-            ]
+            'img_path' : f'{image_name}.jpg',
+            'height'   : image.shape[0],
+            'width'    : image.shape[1],
+            'instances': text_instances
         })
 
         self.image_id += 1
@@ -711,9 +566,11 @@ if __name__ == '__main__':
     output_dir = os.path.join('output',args.output_dir)
     file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
                            os.path.join(output_dir))
+    
+    template_generator = TextTemplate()
     try:
         for x in trange(args.num):
-            _main(file_saver)
+            _main(file_saver, template_generator)
     except KeyboardInterrupt:
         pass
     
