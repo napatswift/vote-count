@@ -1,9 +1,8 @@
 from PIL import Image, ImageFont, ImageDraw
 from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
-from imgaug.augmentables.segmaps import SegmentationMapsOnImage
-from imgaug.augmentables import Keypoint, KeypointsOnImage
 from imgaug import augmenters as iaa
 import augraphy as agh
+from faker import Faker
 import random
 import attacut
 import re
@@ -26,11 +25,8 @@ political_parties_th = ['ประชาธิปัตย์', 'ประชา
 # create a augmentation pipeline to mimick the real world data
 seq = iaa.Sequential([
     # Add perspective transformations to mimic skewed or rotated documents
-    iaa.Sometimes(0.3, iaa.PerspectiveTransform(scale=(0.01, 0.05), fit_output=True)),
-    iaa.Sometimes(0.3, iaa.PerspectiveTransform(scale=(0.01, 0.1),)),
-    iaa.Pad(px=(0, 20), pad_mode='constant', pad_cval=(0, 255)),
-    # Apply random cropping to mimic imperfect alignment or framing
-    iaa.Crop(px=(0, 30)),
+    iaa.Sometimes(0.3, iaa.PerspectiveTransform(
+        scale=(0.01, 0.05), fit_output=True)),
     # Perturb the colors by adjusting brightness, adding noise, etc.
     iaa.SomeOf((0, 3), [
         iaa.Multiply((0.3, 1.1)),
@@ -42,6 +38,8 @@ seq = iaa.Sequential([
         iaa.ShearY((-5, 5), fit_output=True, cval=(0, 255)),
         iaa.Rotate((-5, 5), fit_output=True, cval=(0, 255)),
     ]),
+    # Apply random cropping to mimic imperfect alignment or framing
+    iaa.Crop(px=(0, 200)),
 ])
 
 
@@ -51,7 +49,6 @@ def augment_image(image):
         agh.LowInkPeriodicLines(p=0.3),
         agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
         agh.DirtyDrum(p=0.7),
-        agh.PencilScribbles(size_range=(10,100), count_range=(1, 3), p=0.5),
     ])(image)[0]
 
 
@@ -80,19 +77,39 @@ class BBox:
     def __repr__(self,):
         return f'({self.x0},{self.y0},{self.x1},{self.y1})'
 
+
 class RandomFont:
     def __init__(self, font_dir: str):
-        self.font_paths = [os.path.join(font_dir, fp)for fp in os.listdir(font_dir) if fp.endswith('.ttf')]
+        self.font_paths = [os.path.join(font_dir, fp)for fp in os.listdir(
+            font_dir) if fp.endswith('.ttf')]
 
-    def get(self, size=24):
-        return ImageFont.truetype(random.choice(self.font_paths), size=size)
+    def get(self, size=20):
+        """
+        Gets a random font with the specified size.
+
+        Args:
+            size: The size of the font.
+
+        Returns:
+            A `PIL.ImageFont` object representing the random font.
+        """
+        font_path = random.choice(self.font_paths)
+        default_font_size = 10
+        font = ImageFont.truetype(font_path, default_font_size)
+        test_text = 'นี่คือข้อความใช้สำหรับทดสอบ'
+        text_bbox = font.getbbox(test_text)
+        height = text_bbox[3] - text_bbox[1]
+        return ImageFont.truetype(font_path, size=int(size*default_font_size/height+0.5))
+
 
 def arabic2th(n):
     return chr(ord(n)+(ord('๑')-ord('1')))
 
+
 def unit_process(val):
     # https://suilad.wordpress.com/2012/05/09/code-python-%E0%B9%81%E0%B8%9B%E0%B8%A5%E0%B8%87%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%A5%E0%B8%82-%E0%B9%84%E0%B8%9B%E0%B9%80%E0%B8%9B%E0%B9%87%E0%B8%99-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%AB/
-    thai_number = ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า")
+    thai_number = ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่",
+                   "ห้า", "หก", "เจ็ด", "แปด", "เก้า")
     unit = ("", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน")
     length = len(val) > 1
     result = ''
@@ -111,9 +128,11 @@ def unit_process(val):
 
     return result
 
+
 def thai_num2text(number):
     s_number = str(number)[::-1]
-    n_list = [s_number[i:i + 6].rstrip("0") for i in range(0, len(s_number), 6)]
+    n_list = [s_number[i:i + 6].rstrip("0")
+              for i in range(0, len(s_number), 6)]
     result = unit_process(n_list.pop(0))
 
     for i in n_list:
@@ -121,14 +140,18 @@ def thai_num2text(number):
 
     return result
 
-fonts = {'sarabun':RandomFont('formal'), 'handwriting': RandomFont('handwriting'),}
+
+fonts = {'sarabun': RandomFont(
+    'formal'), 'handwriting': RandomFont('handwriting'), }
 
 image_width = 826
 image_height = 1169
 
+
 class TextTemplate:
     def __init__(self) -> None:
-        self.template_files = [os.path.join('template', f) for f in os.listdir('template') if f.endswith('.txt')]
+        self.template_files = [os.path.join('template', f) for f in os.listdir(
+            'template') if f.endswith('.txt')]
         random.shuffle(self.template_files)
         self.current_idx = 0
 
@@ -141,7 +164,8 @@ class TextTemplate:
         return self._get_tokens(template)
 
     def _get_tokens(self, text_template):
-        big_pieces = re.split('(\<[^\>]*\>|\t|\n| |\{[^\}]*\}|%%\w+|\|)', text_template)
+        big_pieces = re.split(
+            '(\<[^\>]*\>|\t|\n| |\{[^\}]*\}|%%\w+|\|)', text_template)
         tokens = []
 
         for piece in big_pieces:
@@ -153,14 +177,16 @@ class TextTemplate:
                 tokens.append(piece)
         return tokens
 
+
 def _main(file_saver, text_template_generator):
-    #create blank white paper
+    # create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
     draw = ImageDraw.Draw(image,)
 
     pen_color = random.choice(['#000F55', '#383b3e', '#ac3235'])
 
     sarabun_font = fonts['sarabun'].get()
+    text_faker: Faker = Faker(['th_TH'])
 
     start_y = 10
     start_x = 60
@@ -169,7 +195,7 @@ def _main(file_saver, text_template_generator):
     tambon = geo_names.sample()
 
     text_bboxes = []
-    temp_token = {'text': [],'bbox': BBox()}
+    temp_token = {'text': [], 'bbox': BBox()}
 
     line_hieght = 30
     curr_y = start_y
@@ -182,17 +208,17 @@ def _main(file_saver, text_template_generator):
         font_type = 'sarabun'
         font_color = '#000'
         handwriting_text = ''
-        if re.match('^\{[^\}]*\}',token):
+        if re.match('^\{[^\}]*\}', token):
             dot_count = 30
             if 'handwriting' in token:
                 font_type = 'handwriting'
 
             if 'tambon' in token:
-                token = tambon.TAMBON_T.item().replace('ต.','')
+                token = tambon.TAMBON_T.item().replace('ต.', '')
             elif 'amphoe' in token:
-                token = tambon.AMPHOE_T.item().replace('อ.','')
+                token = tambon.AMPHOE_T.item().replace('อ.', '')
             elif 'province' in token:
-                token = tambon.CHANGWAT_T.item().replace('จ.','')
+                token = tambon.CHANGWAT_T.item().replace('จ.', '')
             elif 'lastname_th' in token:
                 token = random.choice(last_names_th)
             elif 'party_name_th' in token:
@@ -200,13 +226,13 @@ def _main(file_saver, text_template_generator):
             elif 'name_th' in token:
                 token = random.choice(names_th)
             elif 'title_th' in token:
-                token = random.choice(['นาย','นางสาว','นาง'])
+                token = random.choice(['นาย', 'นางสาว', 'นาง'])
             elif 'number' in token:
-                number = random.randint(1,100)
+                number = random.randint(1, 100)
                 dot_count = 10
                 if 'reading' in token:
                     number = thai_num2text(number)
-                    dot_count = random.randint(40,60)
+                    dot_count = random.randint(40, 60)
                 elif 'th' in token:
                     number = str(number)
                     number = ''.join([arabic2th(n) for n in number])
@@ -214,23 +240,25 @@ def _main(file_saver, text_template_generator):
                     number = str(number)
                 token = number
             elif 'date' in token:
-                number = str(random.randint(1,31))
+                number = str(random.randint(1, 31))
                 if 'th' in token:
                     number = ''.join([arabic2th(n) for n in number])
                 token = number
             elif 'year' in token:
-                number = str(random.randint(2500,2570))
+                number = str(random.randint(2500, 2570))
                 if 'th' in token:
                     number = ''.join([arabic2th(n) for n in number])
                 token = number
             elif 'month_th' in token:
                 token = random.choice(months_th)
+            elif 'word_th' in token:
+                token = text_faker.word()
 
             if font_type == 'handwriting':
-                handwriting_text = token            
+                handwriting_text = token
                 token = '.' * dot_count
 
-        ## dealing with table
+        # dealing with table
         if token == '%%table' and not table_flag:
             table_flag = True
             continue
@@ -238,16 +266,16 @@ def _main(file_saver, text_template_generator):
             table_flag = False
             # filter
             table_cells = [x for x in table_cells if x and x[0]]
-            font=fonts['sarabun'].get(22)
+            font = fonts['sarabun'].get(20)
 
             table_width = image_width * 0.92
-            table_column_size = [0.15,0.26,0.24,0.35]
+            table_column_size = [0.15, 0.26, 0.24, 0.35]
             margin = 10
 
             _start_y = curr_y
             _start_x = (image_width - table_width)/2
             _line_height = 30
-            curr_y  = _start_y
+            curr_y = _start_y
             for row_i, row in enumerate(table_cells):
                 curr_x = _start_x
                 row_start = (curr_x, curr_y)
@@ -255,7 +283,7 @@ def _main(file_saver, text_template_generator):
                 for col_j, (col_size, cell_tokens) in enumerate(zip(table_column_size, row)):
                     cell_width = col_size * table_width
                     lines = []
-                    
+
                     # `text_1` is for handwriting text
                     lines.append({'text': '', 'text_1': None})
                     for token in cell_tokens:
@@ -267,14 +295,15 @@ def _main(file_saver, text_template_generator):
                             lines[-1]['text'] += token['text']
                             # If the token has handwriting text, append it to the current line
                             if token['text_1'] is not None:
-                                if lines[-1]['text_1'] is None :
+                                if lines[-1]['text_1'] is None:
                                     lines[-1]['text_1'] = token['text_1']
                                 else:
                                     lines[-1]['text_1'] += token['text_1']
 
                     temp_y = curr_y
                     for line in lines:
-                        x0,y0,x1,y1 = draw.textbbox((curr_x+5, curr_y+5), line['text'], font=font)
+                        x0, y0, x1, y1 = draw.textbbox(
+                            (curr_x+5, curr_y+5), line['text'], font=font)
                         align_center = random.random() < 0.5
                         if align_center:
                             # center
@@ -284,43 +313,48 @@ def _main(file_saver, text_template_generator):
                             x0 = curr_x+5
 
                         # draw text to image
-                        draw.text((x0, curr_y+5,), line['text'], '#000', font=font)
+                        draw.text((x0, curr_y+5,),
+                                  line['text'], '#000', font=font)
                         # get text bbox
-                        x0,y0,x1,y1 = draw.textbbox((x0, curr_y+5,), line['text'], font=font)
+                        x0, y0, x1, y1 = draw.textbbox(
+                            (x0, curr_y+5,), line['text'], font=font)
                         # add text bbox to list
-                        text_bboxes.append({'text': [line['text']], 'bbox': BBox(x0,y0,x1,y1)})
+                        text_bboxes.append(
+                            {'text': [line['text']], 'bbox': BBox(x0, y0, x1, y1)})
 
                         # handwriting text
                         if line['text_1']:
                             # get handwriting font
-                            hfont = fonts['handwriting'].get()
+                            hfont = fonts['handwriting'].get(
+                                random.randint(20, 27))
                             # get text width
                             text_width = hfont.getlength(line['text_1'])
                             xy_pos = (
                                 # randomly select an integer between the values of `x0` and `x1-text_width`-10.
-                                random.randint(int(x0), max(int(x0), int(x1-text_width)-10)),
+                                random.randint(int(x0), max(
+                                    int(x0), int(x1-text_width)-10)),
                                 # randomly select an integer between the values of `curr_y-5` and `curr_y+2`.
                                 random.randint(curr_y-5, curr_y+2))
                             # draw text with handwriting font
-                            draw.text(xy_pos, line['text_1'], '#000', font=hfont)
+                            draw.text(
+                                xy_pos, line['text_1'], '#000', font=hfont)
                             # get text bounding box
-                            x0,y0,x1,y1 = draw.textbbox(xy_pos, line['text_1'], font=hfont)
+                            x0, y0, x1, y1 = draw.textbbox(
+                                xy_pos, line['text_1'], font=hfont)
                             # append to text_bboxes
-                            text_bboxes.append({'text': [line['text_1']], 'bbox': BBox(x0,y0,x1,y1)})
+                            text_bboxes.append(
+                                {'text': [line['text_1']], 'bbox': BBox(x0, y0, x1, y1)})
                         curr_y += _line_height
-                    
+
                     row_max_y = max(row_max_y, curr_y+10)
 
                     curr_y = temp_y
                     curr_x += cell_width
+
                     row_x0, row_y0 = row_start
                     row_x1, row_y1 = curr_x, row_max_y
-                    draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#000')
-                    # table_draw.rectangle((row_x0, row_y0, row_x1, row_y1), outline='#fff', width=4)
-                    # table_keypoints.append((row_x0, row_y0))
-                    # table_keypoints.append((row_x1, row_y0))
-                    # table_keypoints.append((row_x0, row_y1))
-                    # table_keypoints.append((row_x1, row_y1))
+                    draw.rectangle(
+                        (row_x0, row_y0, row_x1, row_y1), outline='#000')
                 curr_y = row_max_y
             continue
         elif table_flag:
@@ -334,68 +368,84 @@ def _main(file_saver, text_template_generator):
                     table_cells.append([])
                 if not table_cells[-1]:
                     table_cells[-1].append([])
-                table_cells[-1][-1].append({'text':token, 'text_1': handwriting_text})
+                table_cells[-1][-1].append({'text': token,
+                                           'text_1': handwriting_text})
 
             continue
         ##
-        
-        x0,y0,x1,y1 = draw.textbbox((curr_x,curr_y), token, font=fonts['sarabun'].get())
-        
+
+        x0, y0, x1, y1 = draw.textbbox(
+            (curr_x, curr_y), token, font=fonts['sarabun'].get())
+
         if x1 > max_x or token == '\n':
             # start new line
-            curr_x = start_x 
+            curr_x = start_x
             curr_y += line_hieght
             text_bboxes.append(temp_token)
-            temp_token = {'text': [],'bbox': BBox()}
-            if token == '\n': continue
+            temp_token = {'text': [], 'bbox': BBox()}
+            if token == '\n':
+                continue
         if token == '\t':
             # tab
             text_bboxes.append(temp_token)
-            temp_token = {'text': [],'bbox': BBox()}
-            curr_x += 30; continue
+            temp_token = {'text': [], 'bbox': BBox()}
+            curr_x += 30
+            continue
 
         elif token == ' ':
             text_bboxes.append(temp_token)
-            temp_token = {'text': [],'bbox': BBox()}
+            temp_token = {'text': [], 'bbox': BBox()}
             curr_x += fonts['sarabun'].get().getlength(' ')
-            
+
             continue
-        
-        x0,y0,x1,y1 = draw.textbbox((curr_x,curr_y), token, font=sarabun_font)
+
+        x0, y0, x1, y1 = draw.textbbox(
+            (curr_x, curr_y), token, font=sarabun_font)
         if font_type == 'handwriting':
-            font=fonts['handwriting'].get()
+            font = fonts['handwriting'].get()
             text_bboxes.append(temp_token)
-            temp_token = {'text': [],'bbox': BBox()}
+            temp_token = {'text': [], 'bbox': BBox()}
             # draw ............... for forms placeholder
             draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
             # get the text width
             text_width = font.getlength(handwriting_text)
             # calculate position for putting text
-            xy_pos = (random.randint(int(x0), max(int(x0), int(x1-text_width-10))), random.randint(int(curr_y-10), int(curr_y+2)))
-            draw.text(xy_pos,handwriting_text, pen_color, font=font)
+            xy_pos = (random.randint(int(x0), max(int(x0), int(
+                x1-text_width-10))), random.randint(int(curr_y-10), int(curr_y+2)))
+            draw.text(xy_pos, handwriting_text, pen_color, font=font)
             xyxy = draw.textbbox(xy_pos, handwriting_text, font=font)
             temp_token['text'].append(handwriting_text)
             temp_token['bbox'].merge(*xyxy)
             text_bboxes.append(temp_token)
-            temp_token = {'text': [],'bbox': BBox()}
+            temp_token = {'text': [], 'bbox': BBox()}
         else:
             draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
             temp_token['text'].append(token)
-            temp_token['bbox'].merge(x0,y0,x1,y1)
+            temp_token['bbox'].merge(x0, y0, x1, y1)
 
         curr_x = x1
-    
+
     if temp_token not in text_bboxes:
         text_bboxes.append(temp_token)
 
     bboxes_on_image = []
     for x in text_bboxes:
-        if not x['text']: continue
+        if not x['text']:
+            continue
         
-        # if text is `(...)` with any number of `.` in between, then ignore it.
-        if re.match(r'\(\.*\)', ''.join(x['text'])): continue
+        joined_text = ''.join(x['text'])
 
-        bboxes_on_image.append(BoundingBox(*x['bbox'].to_list(), label=''.join(x['text'])))
+        # if text is `(...)` with any number of `.` in between, then ignore it.
+        # Or text is `.` with any number of `.` in between, then ignore it.
+        if re.match(r'^\.*\(?\.+\)?\.*$', joined_text) or re.match(r'^\.+$', joined_text):
+            continue
+
+        # if text is `(` or `)`, then ignore it.
+        if re.match(r'^(\(|\))$', joined_text):
+            continue
+
+        bboxes_on_image.append(BoundingBox(
+            *x['bbox'].to_list(), label=joined_text))
 
     # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]   ``
     np_image = augment_image(np.array(image))
@@ -405,25 +455,31 @@ def _main(file_saver, text_template_generator):
         aug_bboxes,
         # aug_segmaps,
         # aug_keypoints
-     ) = seq(
+    ) = seq(
         images=[np_image for _ in range(total_copy)],
-        bounding_boxes=[BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
+        bounding_boxes=[BoundingBoxesOnImage(
+            bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
         # segmentation_maps=[SegmentationMapsOnImage(np.array(table_mask)[:,:,None], shape=np_image.shape) for _ in range(total_copy)],
         # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(total_copy)]
     )
 
     # save non-augmented image
-    file_saver.save(np_image, BoundingBoxesOnImage(bboxes_on_image, shape=np_image.shape))
+    file_saver.save(np_image, BoundingBoxesOnImage(
+        bboxes_on_image, shape=np_image.shape))
 
     # save augmented images
     for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
-        file_saver.save(aug_image, aug_bbox.remove_out_of_image_fraction(0.7).clip_out_of_image())
+        file_saver.save(aug_image, aug_bbox
+                        .remove_out_of_image_fraction(0.9)
+                        .clip_out_of_image())
+
 
 def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
     cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
-    cv2.imwrite(os.path.join(image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+    cv2.imwrite(os.path.join(image_dir, image_name +
+                '_mask'+'.png'), segmap.get_arr())
     # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-    
+
     fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
     for bbox in bbox.bounding_boxes:
         for point in bbox.to_keypoints():
@@ -433,6 +489,7 @@ def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=N
         fp.write(bbox.label)
         fp.write('\n')
     fp.close()
+
 
 class FileSaver:
     def __init__(self, image_dir, localization_dir):
@@ -444,13 +501,14 @@ class FileSaver:
     def clean(self, json_path):
         pass
 
+
 class TextFileSaver(FileSaver):
     def __init__(self, image_dir, localization_dir):
         self.image_dir = image_dir
-        
+
         if not os.path.exists(self.image_dir):
             os.makedirs(self.image_dir)
-        
+
         self.localization_dir = localization_dir
 
         if not os.path.exists(self.localization_dir):
@@ -458,14 +516,16 @@ class TextFileSaver(FileSaver):
 
         self.image_id = 0
         self.data_list = []
-    
+
     def save(self, image, bboxes, segmap=None,):
         image_name = f'img_{self.image_id}'
         cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
-        cv2.imwrite(os.path.join(self.image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+        cv2.imwrite(os.path.join(self.image_dir, image_name +
+                    '_mask'+'.png'), segmap.get_arr())
         # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-        
-        fp = open(os.path.join(self.localization_dir, 'gt_'+image_name+'.txt'), 'w')
+
+        fp = open(os.path.join(self.localization_dir,
+                  'gt_'+image_name+'.txt'), 'w')
         for bbox in bboxes.bounding_boxes:
             for point in bbox.to_keypoints():
                 fp.write(str(point.x_int)+',')
@@ -483,7 +543,7 @@ class TextFileSaver(FileSaver):
                 {
                     'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
                     'text': bbox.label,
-                    'bbox_label': 0, # text
+                    'bbox_label': 0,  # text
                     'ignore': False,
                 } for bbox in bboxes.bounding_boxes
             ]
@@ -494,15 +554,16 @@ class TextFileSaver(FileSaver):
     def clean(self, json_path):
         return
 
+
 class MMOCRFileSaver(FileSaver):
     """https://mmocr.readthedocs.io/en/dev-1.x/api/generated/mmocr.datasets.OCRDataset.html#mmocr.datasets.OCRDataset"""
 
     def __init__(self, image_dir, localization_dir):
         self.image_dir = image_dir
-        
+
         if not os.path.exists(self.image_dir):
             os.makedirs(self.image_dir)
-        
+
         self.localization_dir = localization_dir
 
         if not os.path.exists(self.localization_dir):
@@ -510,30 +571,31 @@ class MMOCRFileSaver(FileSaver):
 
         self.image_id = 0
         self.data_list = []
-    
+
     def save(self, image, bboxes, segmap=None,):
         image_name = f'img_{self.image_id}'
         cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
 
         if segmap is not None:
-            cv2.imwrite(os.path.join(self.image_dir, image_name+'_mask'+'.png'), segmap.get_arr())
+            cv2.imwrite(os.path.join(self.image_dir, image_name +
+                        '_mask'+'.png'), segmap.get_arr())
 
         # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-        
+
         text_instances = [
             {
                 'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
                 'polygon': self._get_polygon(bbox.to_keypoints()),
                 'text': bbox.label,
-                'bbox_label': 0, # text
+                'bbox_label': 0,  # text
                 'ignore': False,
             } for bbox in bboxes.bounding_boxes
         ]
 
         self.data_list.append({
-            'img_path' : f'{image_name}.jpg',
-            'height'   : image.shape[0],
-            'width'    : image.shape[1],
+            'img_path': f'{image_name}.jpg',
+            'height': image.shape[0],
+            'width': image.shape[1],
             'instances': text_instances
         })
 
@@ -548,7 +610,7 @@ class MMOCRFileSaver(FileSaver):
             points.append(point.y_int)
         assert len(points) == 8
         return points
-    
+
     def clean(self, json_path):
         with open(json_path, 'w') as fp:
             json.dump(dict(metainfo=dict(dataset_type='TextDetDataset',
@@ -561,17 +623,17 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--output_dir', type=str, default='vc-dataset')
     argparser.add_argument('--num', type=int, required=True)
-    
+
     args = argparser.parse_args()
-    output_dir = os.path.join('output',args.output_dir)
+    output_dir = os.path.join('output', args.output_dir)
     file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
-                           os.path.join(output_dir))
-    
+                                os.path.join(output_dir))
+
     template_generator = TextTemplate()
     try:
         for x in trange(args.num):
             _main(file_saver, template_generator)
     except KeyboardInterrupt:
         pass
-    
+
     file_saver.clean(os.path.join(output_dir, 'train.json'))
