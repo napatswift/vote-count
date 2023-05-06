@@ -374,55 +374,112 @@ def _main(file_saver, text_template_generator):
             continue
         ##
 
+        # Get the bounding box of the text token.
         x0, y0, x1, y1 = draw.textbbox(
             (curr_x, curr_y), token, font=fonts['sarabun'].get())
 
+        # If the width of the text line is greater than the maximum width,
+        # or if the token is a newline character, do the following:
         if x1 > max_x or token == '\n':
-            # start new line
+
+            # Start a new line.
             curr_x = start_x
             curr_y += line_hieght
+
+            # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
+
+            # Create a new empty token dictionary.
             temp_token = {'text': [], 'bbox': BBox()}
+
+            # If the token is a newline character, continue to the next iteration of the loop.
             if token == '\n':
                 continue
+
+        # If the token is a tab character, do the following:
         if token == '\t':
-            # tab
-            text_bboxes.append(temp_token)
-            temp_token = {'text': [], 'bbox': BBox()}
+
+            # Tab the current position.
             curr_x += 30
+
+            # Append the current token to the list of text bboxes.
+            text_bboxes.append(temp_token)
+
+            # Create a new empty token dictionary.
+            temp_token = {'text': [], 'bbox': BBox()}
+
+            # Continue to the next iteration of the loop.
             continue
 
+        # If the token is a space character, do the following:
         elif token == ' ':
-            text_bboxes.append(temp_token)
-            temp_token = {'text': [], 'bbox': BBox()}
+
+            # Advance the current position by the width of a space character.
             curr_x += fonts['sarabun'].get().getlength(' ')
 
+            # Append the current token to the list of text bboxes.
+            text_bboxes.append(temp_token)
+
+            # Create a new empty token dictionary.
+            temp_token = {'text': [], 'bbox': BBox()}
+
+            # Continue to the next iteration of the loop.
             continue
 
+        # Get the bounding box of the text token.
         x0, y0, x1, y1 = draw.textbbox(
             (curr_x, curr_y), token, font=sarabun_font)
+
+        # If the font type is "handwriting", do the following:
         if font_type == 'handwriting':
-            font = fonts['handwriting'].get()
+
+            # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
+
+            # Create a new empty token dictionary.
             temp_token = {'text': [], 'bbox': BBox()}
-            # draw ............... for forms placeholder
+
+            # Draw a placeholder text, like `....`, for the form text.
             draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
-            # get the text width
+
+            # Get the width of the text.
             text_width = font.getlength(handwriting_text)
-            # calculate position for putting text
+
+            # Calculate the position for putting the text.
             xy_pos = (random.randint(int(x0), max(int(x0), int(
                 x1-text_width-10))), random.randint(int(curr_y-10), int(curr_y+2)))
+
+            # Draw the text at the calculated position.
             draw.text(xy_pos, handwriting_text, pen_color, font=font)
+
+            # Get the bounding box of the handwritten text.
             xyxy = draw.textbbox(xy_pos, handwriting_text, font=font)
+
+            # Append the handwritten text to the list of text tokens.
             temp_token['text'].append(handwriting_text)
+
+            # Merge the bounding boxes of the handwritten text and the placeholder.
             temp_token['bbox'].merge(*xyxy)
+
+            # Append the new token dictionary to the list of text bboxes.
             text_bboxes.append(temp_token)
+
+            # Create a new empty token dictionary.
             temp_token = {'text': [], 'bbox': BBox()}
+
+        # Otherwise, do the following:
         else:
+
+            # Draw the text at the current position.
             draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
+
+            # Append the current token to the list of text tokens.
             temp_token['text'].append(token)
+
+            # Merge the bounding boxes of the text tokens.
             temp_token['bbox'].merge(x0, y0, x1, y1)
 
+        # Update the current position.
         curr_x = x1
 
     if temp_token not in text_bboxes:
@@ -430,12 +487,13 @@ def _main(file_saver, text_template_generator):
 
     bboxes_on_image = []
     for x in text_bboxes:
+        # if text is empty, then ignore it.
         if not x['text']:
             continue
-        
+
         joined_text = ''.join(x['text'])
 
-        # if text is `(...)` with any number of `.` in between, then ignore it.
+        # If text is `(...)` with any number of `.` in between, then ignore it.
         # Or text is `.` with any number of `.` in between, then ignore it.
         if re.match(r'^\.*\(?\.+\)?\.*$', joined_text) or re.match(r'^\.+$', joined_text):
             continue
@@ -447,48 +505,26 @@ def _main(file_saver, text_template_generator):
         bboxes_on_image.append(BoundingBox(
             *x['bbox'].to_list(), label=joined_text))
 
-    # keypoints = [Keypoint(x,y) for x,y in set(table_keypoints)]   ``
     np_image = augment_image(np.array(image))
     total_copy = random.randint(1, 3)
     (
         aug_images,
         aug_bboxes,
-        # aug_segmaps,
-        # aug_keypoints
     ) = seq(
         images=[np_image for _ in range(total_copy)],
         bounding_boxes=[BoundingBoxesOnImage(
             bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
-        # segmentation_maps=[SegmentationMapsOnImage(np.array(table_mask)[:,:,None], shape=np_image.shape) for _ in range(total_copy)],
-        # keypoints=[KeypointsOnImage(keypoints, np_image.shape) for _ in range(total_copy)]
     )
 
-    # save non-augmented image
+    # Save non-augmented image
     file_saver.save(np_image, BoundingBoxesOnImage(
         bboxes_on_image, shape=np_image.shape))
 
-    # save augmented images
+    # Save augmented images
     for (aug_image, aug_bbox) in zip(aug_images, aug_bboxes):
         file_saver.save(aug_image, aug_bbox
                         .remove_out_of_image_fraction(0.9)
                         .clip_out_of_image())
-
-
-def save_in_mmocr(image_dir, localization_dir, image_name, image, bbox, segmap=None,):
-    cv2.imwrite(os.path.join(image_dir, image_name+'.jpg'), image)
-    cv2.imwrite(os.path.join(image_dir, image_name +
-                '_mask'+'.png'), segmap.get_arr())
-    # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-
-    fp = open(os.path.join(localization_dir, 'gt_'+image_name+'.txt'), 'w')
-    for bbox in bbox.bounding_boxes:
-        for point in bbox.to_keypoints():
-            fp.write(str(point.x_int)+',')
-            fp.write(str(point.y_int)+',')
-
-        fp.write(bbox.label)
-        fp.write('\n')
-    fp.close()
 
 
 class FileSaver:
@@ -577,10 +613,8 @@ class MMOCRFileSaver(FileSaver):
         cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
 
         if segmap is not None:
-            cv2.imwrite(os.path.join(self.image_dir, image_name +
-                        '_mask'+'.png'), segmap.get_arr())
-
-        # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
+            cv2.imwrite(os.path.join(self.image_dir,
+                                     image_name + '_mask'+'.png'), segmap.get_arr())
 
         text_instances = [
             {
