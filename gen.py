@@ -39,7 +39,7 @@ seq = iaa.Sequential([
         iaa.Rotate((-5, 5), fit_output=True, cval=(0, 255)),
     ]),
     # Apply random cropping to mimic imperfect alignment or framing
-    iaa.Crop(px=(0, 200)),
+    iaa.Sometimes(0.3, iaa.Crop(percent=(0.01, 0.05))),
 ])
 
 
@@ -142,7 +142,7 @@ def thai_num2text(number):
 
 
 fonts = {'sarabun': RandomFont(
-    'formal'), 'handwriting': RandomFont('handwriting'), }
+    'fonts/formal'), 'handwriting': RandomFont('fonts/handwriting'), }
 
 image_width = 826
 image_height = 1169
@@ -432,6 +432,8 @@ def _main(file_saver, text_template_generator):
 
         # If the font type is "handwriting", do the following:
         if font_type == 'handwriting':
+            # Select font
+            font = fonts['handwriting'].get()
 
             # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
