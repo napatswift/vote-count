@@ -14,9 +14,9 @@ import cv2
 import json
 import argparse
 
-last_names_th = open('family_names_th.txt').read().split('\n')[:-1]
-names_th = open('female_names_th.txt').read().split('\n')[:-1]
-geo_names = pd.read_csv('tambons.csv')
+last_names_th = open('data/family_names_th.txt').read().split('\n')[:-1]
+names_th = open('data/female_names_th.txt').read().split('\n')[:-1]
+geo_names = pd.read_csv('data/tambons.csv')
 months_th = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
              'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 political_parties_th = ['ประชาธิปัตย์', 'ประชากรไทย', 'ความหวังใหม่', 'เครือข่ายชาวนาแห่งประเทศไทย', 'เพื่อไทย', 'เพื่อแผ่นดิน', 'ชาติพัฒนา', 'ชาติไทยพัฒนา', 'อนาคตไทย', 'ภูมิใจไทย', 'สังคมประชาธิปไตยไทย', 'ประชาสามัคคี', 'ประชาธิปไตยใหม่', 'พลังชล', 'ครูไทยเพื่อประชาชน', 'พลังสหกรณ์', 'พลังท้องถิ่นไท', 'ถิ่นกาขาวชาววิไล',
