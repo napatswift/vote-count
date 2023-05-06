@@ -150,8 +150,8 @@ image_height = 1169
 
 class TextTemplate:
     def __init__(self) -> None:
-        self.template_files = [os.path.join('template', f) for f in os.listdir(
-            'template') if f.endswith('.txt')]
+        self.template_files = [os.path.join('templates', f) for f in os.listdir(
+            'templates') if f.endswith('.txt')]
         random.shuffle(self.template_files)
         self.current_idx = 0
 
