@@ -2,7 +2,9 @@ import json
 import argparse
 import os
 import shutil
+from pathlib import Path
 
+IMAGE_ID = 0
 
 def read_dataset(json_path: str):
     if json_path is None:
@@ -42,7 +44,9 @@ def concat_dataset(json_1: str, json_2, dest):
 
 
 def move_image_file(source, dest, data_list):
-    out_dir = os.path.join(dest, 'imgs', source)
+    global IMAGE_ID
+
+    out_dir = os.path.join(dest, 'imgs',)
     os.makedirs(out_dir, exist_ok=True)
     fnames = []
 
@@ -54,7 +58,8 @@ def move_image_file(source, dest, data_list):
             continue
         fnames.append(image_path)
 
-        dest_name = os.path.join(out_dir, image_path)
+        image_filename = f'image_{IMAGE_ID}.{Path(image_path).suffix}'
+        dest_name = os.path.join(out_dir, image_filename)
 
         if os.path.isfile(dest_name):
             raise FileExistsError(
@@ -64,8 +69,8 @@ def move_image_file(source, dest, data_list):
 
         shutil.copy2(f'{source}/imgs/{image_path}', dest_name)
 
-        data['img_path'] = os.path.join(source, image_path)
-
+        data['img_path'] = image_filename
+        IMAGE_ID += 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -20,10 +20,10 @@
 
 %%table
 หมายเลข<sep>ประจำตัวผู้สมัคร|ชื่อ-สกุล<sep>ผู้สมัครรับเลือกตั้ง|สังกัด<sep>พรรคการเมือง|ได้คะแนน<sep>(ให้กรอกทั้งตัวเลขและตัวอักษร)
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}({number_reading_number_handwriting_th})
 {number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|({number_reading_number_handwriting_th})
-{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th_handwriting}|{number_handwriting}({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}({number_reading_number_handwriting_th})
 {number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
 %%table
 ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง

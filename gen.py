@@ -24,22 +24,31 @@ political_parties_th = ['ประชาธิปัตย์', 'ประชา
 
 # create a augmentation pipeline to mimick the real world data
 seq = iaa.Sequential([
-    # Add perspective transformations to mimic skewed or rotated documents
+    # # Add perspective transformations to mimic skewed or rotated documents
     iaa.Sometimes(0.3, iaa.PerspectiveTransform(
         scale=(0.01, 0.05), fit_output=True)),
-    # Perturb the colors by adjusting brightness, adding noise, etc.
-    iaa.SomeOf((0, 3), [
+    # # Perturb the colors by adjusting brightness, adding noise, etc.
+    iaa.SomeOf((1, 3), [
         iaa.Multiply((0.3, 1.1)),
         iaa.GammaContrast(gamma=(0.5, 1)),
     ]),
-    # Apply affine transformations (shearing, rotation, etc.)
+    # # Apply affine transformations (shearing, rotation, etc.)
     iaa.SomeOf((0, 2), [
         iaa.ShearX((-5, 5), fit_output=True, cval=(0, 255)),
         iaa.ShearY((-5, 5), fit_output=True, cval=(0, 255)),
         iaa.Rotate((-5, 5), fit_output=True, cval=(0, 255)),
+        iaa.ElasticTransformation(alpha=1500, sigma=200, order=1),
+        iaa.BlendAlphaMask(
+            iaa.InvertMaskGen(0.5, iaa.VerticalLinearGradientMaskGen()),
+            iaa.Sequential([iaa.MotionBlur(k=(3, 7)),
+                            iaa.GammaContrast(gamma=(.1, 3))])
+        ),
     ]),
-    # Apply random cropping to mimic imperfect alignment or framing
-    iaa.Sometimes(0.3, iaa.Crop(percent=(0.01, 0.05))),
+    iaa.BlendAlphaMask(
+        iaa.InvertMaskGen(0.5, iaa.VerticalLinearGradientMaskGen()),
+        iaa.MotionBlur(k=(3, 7))
+    ),
+    iaa.ElasticTransformation(alpha=2000, sigma=160, ),
 ])
 
 
@@ -48,7 +57,7 @@ def augment_image(image):
         agh.Gamma(gamma_range=(0.1, 1.5), p=0.8),
         agh.LowInkPeriodicLines(p=0.3),
         agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
-        agh.DirtyDrum(p=0.7),
+        agh.DirtyDrum(p=0.3),
     ])(image)[0]
 
 
@@ -141,8 +150,8 @@ def thai_num2text(number):
     return result
 
 
-fonts = {'sarabun': RandomFont(
-    'fonts/formal'), 'handwriting': RandomFont('fonts/handwriting'), }
+fonts = {'sarabun': RandomFont('fonts/formal'),
+         'handwriting': RandomFont('fonts/handwriting'), }
 
 image_width = 826
 image_height = 1169
@@ -220,19 +229,37 @@ def _main(file_saver, text_template_generator):
             elif 'province' in token:
                 token = tambon.CHANGWAT_T.item().replace('จ.', '')
             elif 'lastname_th' in token:
-                token = random.choice(last_names_th)
+                token = random.choice(last_names_th) if random.random(
+                ) > .5 else text_faker.last_name()
             elif 'party_name_th' in token:
                 token = random.choice(political_parties_th)
             elif 'name_th' in token:
-                token = random.choice(names_th)
+                token = random.choice(names_th) if random.random(
+                ) > .5 else text_faker.first_name()
             elif 'title_th' in token:
-                token = random.choice(['นาย', 'นางสาว', 'นาง'])
+                token = text_faker.prefix()
             elif 'number' in token:
-                number = random.randint(1, 100)
-                dot_count = 10
+                if random.random() > .8:
+                    number = 0
+                # one digit number
+                elif random.random() > .5:
+                    number = random.randint(1, 9)
+                    dot_count = 5
+                # two digit number
+                elif random.random() > .5:
+                    number = random.randint(10, 99)
+                    dot_count = 10
+                # three digit number
+                elif random.random() > .5:
+                    number = random.randint(100, 999)
+                    dot_count = 10
+                else:
+                    number = random.randint(0, 9999)
+                    dot_count = 10
+
                 if 'reading' in token:
                     number = thai_num2text(number)
-                    dot_count = random.randint(40, 60)
+                    dot_count = len(number) + random.randint(20, 40)
                 elif 'th' in token:
                     number = str(number)
                     number = ''.join([arabic2th(n) for n in number])
@@ -251,6 +278,8 @@ def _main(file_saver, text_template_generator):
                 token = number
             elif 'month_th' in token:
                 token = random.choice(months_th)
+            elif 'word_n_th' in token:
+                token = ''.join(text_faker.words(nb=random.randint(1, 5)))
             elif 'word_th' in token:
                 token = text_faker.word()
 
@@ -266,7 +295,9 @@ def _main(file_saver, text_template_generator):
             table_flag = False
             # filter
             table_cells = [x for x in table_cells if x and x[0]]
-            font = fonts['sarabun'].get(20)
+            fsize = random.randint(20, 30)
+            font = fonts['sarabun'].get(fsize) if random.random(
+            ) < 20 else fonts['handwriting'].get(fsize)
 
             table_width = image_width * 0.92
             table_column_size = [0.15, 0.26, 0.24, 0.35]
@@ -302,6 +333,10 @@ def _main(file_saver, text_template_generator):
 
                     temp_y = curr_y
                     for line in lines:
+                        fsize = random.randint(20, 30)
+                        font = fonts['sarabun'].get(fsize) if random.random(
+                        ) < .5 else fonts['handwriting'].get(fsize)
+
                         x0, y0, x1, y1 = draw.textbbox(
                             (curr_x+5, curr_y+5), line['text'], font=font)
                         align_center = random.random() < 0.5
@@ -326,13 +361,13 @@ def _main(file_saver, text_template_generator):
                         if line['text_1']:
                             # get handwriting font
                             hfont = fonts['handwriting'].get(
-                                random.randint(20, 27))
+                                random.randint(20, 34))
                             # get text width
-                            text_width = hfont.getlength(line['text_1'])
+                            txt_w = hfont.getlength(line['text'])
                             xy_pos = (
                                 # randomly select an integer between the values of `x0` and `x1-text_width`-10.
-                                random.randint(int(x0), max(
-                                    int(x0), int(x1-text_width)-10)),
+                                random.randint(int(x0),
+                                               max(int(x0), int(x1-txt_w)-10)),
                                 # randomly select an integer between the values of `curr_y-5` and `curr_y+2`.
                                 random.randint(curr_y-5, curr_y+2))
                             # draw text with handwriting font
@@ -376,11 +411,13 @@ def _main(file_saver, text_template_generator):
 
         # Get the bounding box of the text token.
         x0, y0, x1, y1 = draw.textbbox(
-            (curr_x, curr_y), token, font=fonts['sarabun'].get())
+            (curr_x, curr_y), token, font=sarabun_font)
 
         # If the width of the text line is greater than the maximum width,
         # or if the token is a newline character, do the following:
         if x1 > max_x or token == '\n':
+            # Get a new font.
+            sarabun_font = fonts['sarabun'].get(random.randint(20, 30))
 
             # Start a new line.
             curr_x = start_x
@@ -415,13 +452,16 @@ def _main(file_saver, text_template_generator):
         elif token == ' ':
 
             # Advance the current position by the width of a space character.
-            curr_x += fonts['sarabun'].get().getlength(' ')
+            curr_x += sarabun_font.getlength(' ')
 
             # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
 
             # Create a new empty token dictionary.
             temp_token = {'text': [], 'bbox': BBox()}
+
+            # Get new font.
+            sarabun_font = fonts['sarabun'].get(random.randint(17, 24))
 
             # Continue to the next iteration of the loop.
             continue
@@ -433,7 +473,7 @@ def _main(file_saver, text_template_generator):
         # If the font type is "handwriting", do the following:
         if font_type == 'handwriting':
             # Select font
-            font = fonts['handwriting'].get()
+            font = fonts['handwriting'].get(random.randint(20, 27))
 
             # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
@@ -448,8 +488,8 @@ def _main(file_saver, text_template_generator):
             text_width = font.getlength(handwriting_text)
 
             # Calculate the position for putting the text.
-            xy_pos = (random.randint(int(x0), max(int(x0), int(
-                x1-text_width-10))), random.randint(int(curr_y-10), int(curr_y+2)))
+            xy_pos = (random.randint(int(x0), max(int(x0), int(x1-text_width-10))),
+                      random.randint(int(curr_y-10), int(curr_y+2)))
 
             # Draw the text at the calculated position.
             draw.text(xy_pos, handwriting_text, pen_color, font=font)
@@ -471,7 +511,6 @@ def _main(file_saver, text_template_generator):
 
         # Otherwise, do the following:
         else:
-
             # Draw the text at the current position.
             draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
 
@@ -483,6 +522,11 @@ def _main(file_saver, text_template_generator):
 
         # Update the current position.
         curr_x = x1
+
+        # If current y position is greater than the maximum y position,
+        # then stop drawing.
+        if curr_y > image.height - start_y:
+            break
 
     if temp_token not in text_bboxes:
         text_bboxes.append(temp_token)
@@ -508,7 +552,7 @@ def _main(file_saver, text_template_generator):
             *x['bbox'].to_list(), label=joined_text))
 
     np_image = augment_image(np.array(image))
-    total_copy = random.randint(1, 3)
+    total_copy = random.randint(0, 3)
     (
         aug_images,
         aug_bboxes,
@@ -518,7 +562,7 @@ def _main(file_saver, text_template_generator):
             bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
     )
 
-    # Save non-augmented image
+    # Save image
     file_saver.save(np_image, BoundingBoxesOnImage(
         bboxes_on_image, shape=np_image.shape))
 

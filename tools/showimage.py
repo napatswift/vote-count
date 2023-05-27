@@ -18,6 +18,7 @@ The code uses the following libraries:
 import json
 import cv2
 import random
+import argparse
 
 
 def main():
@@ -26,8 +27,18 @@ def main():
 
     """
 
+    # Parse the command line arguments.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('data_dir', type=str, default='output/test',
+                        help='the directory of the dataset')
+    parser.add_argument('data_file', type=str, default='train.json',
+                        help='the name of the JSON file')
+    args = parser.parse_args()
+    data_dir = args.data_dir
+    data_file = args.data_file
+
     # Load the JSON file.
-    with open('output/test/train.json') as f:
+    with open(f'{data_dir}/{data_file}') as f:
         data = json.load(f)
 
     # Select 15 random images from the list.
@@ -37,29 +48,33 @@ def main():
         data_list.remove(data)
 
         # Read the image.
-        img = cv2.imread('output/test/imgs/' + data['img_path'])
+        img = cv2.imread(f'{data_dir}/imgs/' + data['img_path'])
         if img is None:
             raise FileExistsError('image file not found')
 
         # Draw the bounding boxes of the text regions in the image.
         for text_reg in data['instances']:
-            polygon = text_reg['polygon']
-            polygon = [int(x) for x in polygon]
-            for i in range(len(polygon) // 2 - 1):
-                ix0 = i * 2
-                ix1 = (i + 1) * 2
-                cv2.line(img, [polygon[ix0], polygon[ix0 + 1]],
-                         [polygon[ix1], polygon[ix1 + 1]], (255, 0, 0), 2)
+            # polygon = text_reg['polygon']
+            # polygon = [int(x) for x in polygon]
+            # for i in range(len(polygon) // 2 - 1):
+            #     ix0 = i * 2
+            #     ix1 = (i + 1) * 2
+            #     cv2.line(img, [polygon[ix0], polygon[ix0 + 1]],
+            #              [polygon[ix1], polygon[ix1 + 1]], (255, 0, 0), 2)
             bbox = text_reg['bbox']
             bbox = [int(x) for x in bbox]
-            cv2.rectangle(img, bbox[:2], bbox[2:], (0, 0, 255), 1)
+            cv2.rectangle(img, bbox[:2], bbox[2:], (255, 0, 0), 1)
 
         # Display the image.
         cv2.imshow('Image', img)
 
+        key = cv2.waitKey(0)
         # if key is escape, exit
-        if cv2.waitKey(0) == 27:
+        if key == 27:
             break
+        # if key is 's', save the image
+        elif key == ord('s'):
+            cv2.imwrite('image.png', img)
 
 
 if __name__ == '__main__':
