@@ -1,0 +1,15 @@
+		{number_th}. {words_10_th}
+				{number_th}.{number_th} {words_5_th} {words_5_th} {number} {words_5_th} {words_5_th}
+				{number_th}.{number_th} {words_5_th}{words_5_th}{words_5_th}{words_5_th}
+				{number_th}.{number_th} {words_5_th} {words_5_th} {words_5_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th}
+				{number_th}.{number_th} {words_5_th} {words_5_th} {words_5_th} {number} {words_2_th} {words_3_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th}
+				{number_th}.{number_th} {words_5_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th}
+		{number_th}. {words_2_th} {words_5_th} {words_5_th} {words_5_th}
+				{number_th}.{number_th} {words_5_th} {words_5_th} {words_5_th} {words_5_th}
+				{number_th}.{number_th} {words_5_th} {words_3_th} {words_5_th} {words_3_th}  {words_2_th} {words_5_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th}
+		{number_th}. {words_5_th} {words_3_th} {words_5_th} {words_3_th}  {words_2_th} {words_5_th}
+				{number_th}.{number_th} {words_5_th} {words_3_th} {words_5_th} {words_3_th} {words_2_th} {words_3_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th}
+				{number_th}.{number_th} {words_5_th} {words_3_th} {number} {words_5_th} {words_3_th} {words_2_th} {words_5_th}
+    				{number_th}.{number_th} {number} {words_10_th} {words_2_th} {words_2_th} {words_3_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th}
+				{number_th}.{number_th} {words_5_th} {words_2_th} {words_3_th} {words_2_th} {words_2_th} {words_5_th}
+				{number_th}.{number_th} {words_5_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {words_5_th} {words_2_th}

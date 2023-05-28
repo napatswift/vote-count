@@ -1,0 +1,21 @@
+
+{words_5_th}{words_2_th}{words_2_th} {words_2_th} {words_3_th} {number}{words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th}
+
+{words_5_th} {words_2_th} {words_2_th} {words_2_th}{words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th}
+
+%%table
+{word_th}<sep>{word_th}|{word_th}<sep>{word_th}|สังกัด<sep>พรรคการเมือง|{word_th}<sep>({word_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+{number}|{title_th}{name_th} {lastname_th}|{party_name_th}|{number_handwriting}
+{number_th}|{title_th}{name_th} {lastname_th}|{party_name_th}|({number_reading_number_handwriting_th})
+%%table
+ชุดที่ ๒ ปิดประกาศ ณ ที่เลือกตั้ง
+
+{number_th}.{number_th}{words_5_th}{words_2_th}{words_2_th}{words_2_th}{words_3_th} {number}{words_2_th}{words_2_th} {number_th}.{number_th} {words_5_th} {words_2_th}{words_2_th}{words_2_th}{words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th} {words_2_th} {words_2_th} {words_3_th} {number} {words_2_th} {words_2_th}

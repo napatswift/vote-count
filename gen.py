@@ -48,7 +48,7 @@ seq = iaa.Sequential([
         iaa.InvertMaskGen(0.5, iaa.VerticalLinearGradientMaskGen()),
         iaa.MotionBlur(k=(3, 7))
     ),
-    iaa.ElasticTransformation(alpha=2000, sigma=160, ),
+    iaa.ElasticTransformation(alpha=500, sigma=80, ),
 ])
 
 
@@ -57,7 +57,8 @@ def augment_image(image):
         agh.Gamma(gamma_range=(0.1, 1.5), p=0.8),
         agh.LowInkPeriodicLines(p=0.3),
         agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
-        agh.DirtyDrum(p=0.3),
+        agh.DirtyDrum(line_concentration=0.05, line_width_range=(1, 2), p=0.3),
+        agh.Scribbles(scribbles_size_range=(50,200),scribbles_count_range=(3,5), p=0.1),
     ])(image)[0]
 
 
@@ -213,6 +214,17 @@ def _main(file_saver, text_template_generator):
     table_flag = False
     table_cells = []
     table_keypoints = []
+
+    def maby_get_new_font(old_font):
+        """
+        Get new font or return old font with 50% probability
+        """
+        if random.random() < .8:
+            return old_font
+        if random.random() > .5:
+            return fonts['sarabun'].get(random.randint(18, 24))
+        return fonts['handwriting'].get(random.randint(20, 34))
+    
     for token in text_template_generator.gen():
         font_type = 'sarabun'
         font_color = '#000'
@@ -234,8 +246,9 @@ def _main(file_saver, text_template_generator):
             elif 'party_name_th' in token:
                 token = random.choice(political_parties_th)
             elif 'name_th' in token:
-                token = random.choice(names_th) if random.random(
-                ) > .5 else text_faker.first_name()
+                token = (random.choice(names_th)
+                         if random.random() > .5
+                         else text_faker.first_name())
             elif 'title_th' in token:
                 token = text_faker.prefix()
             elif 'number' in token:
@@ -278,10 +291,14 @@ def _main(file_saver, text_template_generator):
                 token = number
             elif 'month_th' in token:
                 token = random.choice(months_th)
-            elif 'word_n_th' in token:
-                token = ''.join(text_faker.words(nb=random.randint(1, 5)))
+            # If token matched `words_{digit}_th` e.g. `words_100_th`
+            elif re.match(r'\{words_\d+_th\}', token):
+                digit = int(re.findall('\d+', token)[0])
+                token = ''.join(text_faker.words(nb=digit))
             elif 'word_th' in token:
                 token = text_faker.word()
+            else:
+                print(f'Unknown token: {token}')
 
             if font_type == 'handwriting':
                 handwriting_text = token
@@ -296,8 +313,9 @@ def _main(file_saver, text_template_generator):
             # filter
             table_cells = [x for x in table_cells if x and x[0]]
             fsize = random.randint(20, 30)
-            font = fonts['sarabun'].get(fsize) if random.random(
-            ) < 20 else fonts['handwriting'].get(fsize)
+            font = (fonts['sarabun'].get(fsize)
+                    if random.random() < .2
+                    else fonts['handwriting'].get(fsize))
 
             table_width = image_width * 0.92
             table_column_size = [0.15, 0.26, 0.24, 0.35]
@@ -334,8 +352,9 @@ def _main(file_saver, text_template_generator):
                     temp_y = curr_y
                     for line in lines:
                         fsize = random.randint(20, 30)
-                        font = fonts['sarabun'].get(fsize) if random.random(
-                        ) < .5 else fonts['handwriting'].get(fsize)
+                        font = (fonts['sarabun'].get(fsize)
+                                if random.random() < .2
+                                else fonts['handwriting'].get(fsize))
 
                         x0, y0, x1, y1 = draw.textbbox(
                             (curr_x+5, curr_y+5), line['text'], font=font)
@@ -417,7 +436,7 @@ def _main(file_saver, text_template_generator):
         # or if the token is a newline character, do the following:
         if x1 > max_x or token == '\n':
             # Get a new font.
-            sarabun_font = fonts['sarabun'].get(random.randint(20, 30))
+            sarabun_font = maby_get_new_font(sarabun_font)
 
             # Start a new line.
             curr_x = start_x
@@ -461,7 +480,7 @@ def _main(file_saver, text_template_generator):
             temp_token = {'text': [], 'bbox': BBox()}
 
             # Get new font.
-            sarabun_font = fonts['sarabun'].get(random.randint(17, 24))
+            sarabun_font = maby_get_new_font(sarabun_font)
 
             # Continue to the next iteration of the loop.
             continue
