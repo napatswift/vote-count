@@ -58,7 +58,7 @@ def move_image_file(source, dest, data_list):
             continue
         fnames.append(image_path)
 
-        image_filename = f'image_{IMAGE_ID}.{Path(image_path).suffix}'
+        image_filename = f'image_{IMAGE_ID}{Path(image_path).suffix}'
         dest_name = os.path.join(out_dir, image_filename)
 
         if os.path.isfile(dest_name):
