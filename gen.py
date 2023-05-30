@@ -54,11 +54,12 @@ seq = iaa.Sequential([
 
 def augment_image(image):
     return agh.AugmentationSequence([
-        agh.Gamma(gamma_range=(0.1, 1.5), p=0.8),
-        agh.LowInkPeriodicLines(p=0.3),
+        agh.Gamma(gamma_range=(0.1, 2), p=0.8),
+        agh.LowInkPeriodicLines(p=0.1),
         agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
-        agh.DirtyDrum(line_concentration=0.05, line_width_range=(1, 2), p=0.3),
-        agh.Scribbles(scribbles_size_range=(50,200),scribbles_count_range=(3,5), p=0.1),
+        agh.DirtyDrum(line_concentration=0.05, line_width_range=(1, 2), p=0.1),
+        agh.Scribbles(scribbles_size_range=(50, 200),
+                      scribbles_count_range=(3, 5), p=0.1),
     ])(image)[0]
 
 
@@ -80,6 +81,15 @@ class BBox:
             self.y0 = min(self.y0, y0)
             self.x1 = max(self.x1, x1)
             self.y1 = max(self.y1, y1)
+
+    def height(self,):
+        return self.y1-self.y0
+
+    def width(self,):
+        return self.x1-self.x0
+
+    def area(self,):
+        return self.height()*self.width()
 
     def to_list(self,):
         return [self.x0, self.y0, self.x1, self.y1]
@@ -188,6 +198,18 @@ class TextTemplate:
         return tokens
 
 
+def maybe_get_new_font(old_font=None):
+    """
+    Get new font or return old font with 80% probability
+    """
+    if random.random() < .8 and old_font is not None:
+        return old_font
+    if random.random() < .8:
+        return fonts['sarabun'].get(random.randint(14, 24))
+
+    return fonts['handwriting'].get(random.randint(25, 34))
+
+
 def _main(file_saver, text_template_generator):
     # create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
@@ -195,7 +217,7 @@ def _main(file_saver, text_template_generator):
 
     pen_color = random.choice(['#000F55', '#383b3e', '#ac3235'])
 
-    sarabun_font = fonts['sarabun'].get()
+    formal_font = maybe_get_new_font(None)
     text_faker: Faker = Faker(['th_TH'])
 
     start_y = 10
@@ -215,16 +237,6 @@ def _main(file_saver, text_template_generator):
     table_cells = []
     table_keypoints = []
 
-    def maby_get_new_font(old_font):
-        """
-        Get new font or return old font with 50% probability
-        """
-        if random.random() < .8:
-            return old_font
-        if random.random() > .5:
-            return fonts['sarabun'].get(random.randint(18, 24))
-        return fonts['handwriting'].get(random.randint(20, 34))
-    
     for token in text_template_generator.gen():
         font_type = 'sarabun'
         font_color = '#000'
@@ -352,9 +364,7 @@ def _main(file_saver, text_template_generator):
                     temp_y = curr_y
                     for line in lines:
                         fsize = random.randint(20, 30)
-                        font = (fonts['sarabun'].get(fsize)
-                                if random.random() < .2
-                                else fonts['handwriting'].get(fsize))
+                        font = maybe_get_new_font()
 
                         x0, y0, x1, y1 = draw.textbbox(
                             (curr_x+5, curr_y+5), line['text'], font=font)
@@ -430,13 +440,13 @@ def _main(file_saver, text_template_generator):
 
         # Get the bounding box of the text token.
         x0, y0, x1, y1 = draw.textbbox(
-            (curr_x, curr_y), token, font=sarabun_font)
+            (curr_x, curr_y), token, font=formal_font)
 
         # If the width of the text line is greater than the maximum width,
         # or if the token is a newline character, do the following:
         if x1 > max_x or token == '\n':
             # Get a new font.
-            sarabun_font = maby_get_new_font(sarabun_font)
+            formal_font = maybe_get_new_font(formal_font)
 
             # Start a new line.
             curr_x = start_x
@@ -471,7 +481,7 @@ def _main(file_saver, text_template_generator):
         elif token == ' ':
 
             # Advance the current position by the width of a space character.
-            curr_x += sarabun_font.getlength(' ')
+            curr_x += formal_font.getlength(' ')
 
             # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
@@ -480,19 +490,20 @@ def _main(file_saver, text_template_generator):
             temp_token = {'text': [], 'bbox': BBox()}
 
             # Get new font.
-            sarabun_font = maby_get_new_font(sarabun_font)
+            formal_font = maybe_get_new_font(formal_font)
 
             # Continue to the next iteration of the loop.
             continue
 
         # Get the bounding box of the text token.
         x0, y0, x1, y1 = draw.textbbox(
-            (curr_x, curr_y), token, font=sarabun_font)
+            (curr_x, curr_y), token, font=formal_font)
 
         # If the font type is "handwriting", do the following:
         if font_type == 'handwriting':
+
             # Select font
-            font = fonts['handwriting'].get(random.randint(20, 27))
+            font = fonts['handwriting'].get(random.randint(12, 32))
 
             # Append the current token to the list of text bboxes.
             text_bboxes.append(temp_token)
@@ -501,7 +512,8 @@ def _main(file_saver, text_template_generator):
             temp_token = {'text': [], 'bbox': BBox()}
 
             # Draw a placeholder text, like `....`, for the form text.
-            draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
+            draw.text((curr_x, curr_y), token, font_color,
+                      font=maybe_get_new_font(formal_font))
 
             # Get the width of the text.
             text_width = font.getlength(handwriting_text)
@@ -531,7 +543,7 @@ def _main(file_saver, text_template_generator):
         # Otherwise, do the following:
         else:
             # Draw the text at the current position.
-            draw.text((curr_x, curr_y), token, font_color, font=sarabun_font)
+            draw.text((curr_x, curr_y), token, font_color, font=formal_font)
 
             # Append the current token to the list of text tokens.
             temp_token['text'].append(token)
@@ -567,6 +579,18 @@ def _main(file_saver, text_template_generator):
         if re.match(r'^(\(|\))$', joined_text):
             continue
 
+        # If text is `---` then ignore it.
+        if re.match(r'^-{3,}$', joined_text):
+            continue
+
+        # If height of the text is less than 2 pixels, then ignore it.
+        if x['bbox'].height() < 2:
+            continue
+
+        # If width of the text is less than 2 pixels, then ignore it.
+        if x['bbox'].width() < 2:
+            continue
+
         bboxes_on_image.append(BoundingBox(
             *x['bbox'].to_list(), label=joined_text))
 
@@ -578,7 +602,7 @@ def _main(file_saver, text_template_generator):
     ) = seq(
         images=[np_image for _ in range(total_copy)],
         bounding_boxes=[BoundingBoxesOnImage(
-            bboxes_on_image, shape=np_image.shape) for _ in range(total_copy)],
+            bboxes_on_image, shape=np_image.shape).clip_out_of_image() for _ in range(total_copy)],
     )
 
     # Save image
@@ -676,14 +700,15 @@ class MMOCRFileSaver(FileSaver):
     def save(self, image, bboxes, segmap=None,):
         image_name = f'img_{self.image_id}'
         cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
-
+        padding = 1
         if segmap is not None:
             cv2.imwrite(os.path.join(self.image_dir,
                                      image_name + '_mask'+'.png'), segmap.get_arr())
 
         text_instances = [
             {
-                'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
+                'bbox': [bbox.x1_int-padding, bbox.y1_int-padding,
+                         bbox.x2_int+padding, bbox.y2_int+padding],
                 'polygon': self._get_polygon(bbox.to_keypoints()),
                 'text': bbox.label,
                 'bbox_label': 0,  # text
@@ -720,8 +745,8 @@ class MMOCRFileSaver(FileSaver):
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--output_dir', type=str, default='vc-dataset')
-    argparser.add_argument('--num', type=int, required=True)
+    argparser.add_argument('output_dir', type=str, default='vc-dataset')
+    argparser.add_argument('num', type=int,)
 
     args = argparser.parse_args()
     output_dir = os.path.join('output', args.output_dir)

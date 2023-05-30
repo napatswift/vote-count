@@ -6,6 +6,7 @@ from pathlib import Path
 
 IMAGE_ID = 0
 
+
 def read_dataset(json_path: str):
     if json_path is None:
         return None
@@ -72,6 +73,7 @@ def move_image_file(source, dest, data_list):
         data['img_path'] = image_filename
         IMAGE_ID += 1
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('ds_1', help='path to dataset directory')
@@ -88,6 +90,8 @@ if __name__ == '__main__':
             split = 'train'
         elif 'test' in f:
             split = 'test'
+        else:
+            continue
         if split not in dataset_list.keys():
             dataset_list[split] = []
         split_list = dataset_list.get(split)
