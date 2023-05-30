@@ -19,6 +19,7 @@ import json
 import cv2
 import random
 import argparse
+import os.path as osp
 
 
 def main():
@@ -29,16 +30,14 @@ def main():
 
     # Parse the command line arguments.
     parser = argparse.ArgumentParser()
-    parser.add_argument('data_dir', type=str, default='output/test',
-                        help='the directory of the dataset')
-    parser.add_argument('data_file', type=str, default='train.json',
-                        help='the name of the JSON file')
+    parser.add_argument('data_path', type=str, default='train.json',
+                        help='the path to the JSON file')
     args = parser.parse_args()
-    data_dir = args.data_dir
-    data_file = args.data_file
+    data_path = args.data_path
+    data_dir = osp.dirname(data_path)
 
     # Load the JSON file.
-    with open(f'{data_dir}/{data_file}') as f:
+    with open(f'{data_path}') as f:
         data = json.load(f)
 
     # Select 15 random images from the list.
