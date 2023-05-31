@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +29,6 @@ jobs:
       - name: Generate documents
         run: |
           python gen test.gen 10
-      - name: Check if generate exists in output/
+      - name: Check if output directory `output/test.gen` exists, if deosn't exist, throw error
         run: |
-          if [ -f output/test.gen ]; then echo "File exists"; else echo "File does not exist"; fi
+          if [ ! -d output/test.gen ]; then echo "output/test.gen does not exist"; exit 1; fi
