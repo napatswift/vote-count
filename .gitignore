@@ -2,3 +2,4 @@
 output
 *.ttf
 vote62
+__pycache__

@@ -4,15 +4,11 @@ from imgaug import augmenters as iaa
 import augraphy as agh
 from faker import Faker
 import random
-import attacut
 import re
 import pandas as pd
 import os
 from tqdm import trange
 import numpy as np
-import cv2
-import json
-import argparse
 
 last_names_th = open('data/family_names_th.txt').read().split('\n')[:-1]
 names_th = open('data/female_names_th.txt').read().split('\n')[:-1]
@@ -29,7 +25,7 @@ seq = iaa.Sequential([
         scale=(0.01, 0.05), fit_output=True)),
     # # Perturb the colors by adjusting brightness, adding noise, etc.
     iaa.SomeOf((1, 3), [
-        iaa.Multiply((0.3, 1.1)),
+        iaa.Multiply((0.5, 1.3)),
         iaa.GammaContrast(gamma=(0.5, 1)),
     ]),
     # # Apply affine transformations (shearing, rotation, etc.)
@@ -48,7 +44,6 @@ seq = iaa.Sequential([
         iaa.InvertMaskGen(0.5, iaa.VerticalLinearGradientMaskGen()),
         iaa.MotionBlur(k=(3, 7))
     ),
-    iaa.ElasticTransformation(alpha=500, sigma=80, ),
 ])
 
 
@@ -168,36 +163,6 @@ image_width = 826
 image_height = 1169
 
 
-class TextTemplate:
-    def __init__(self) -> None:
-        self.template_files = [os.path.join('templates', f) for f in os.listdir(
-            'templates') if f.endswith('.txt')]
-        random.shuffle(self.template_files)
-        self.current_idx = 0
-
-    def gen(self,):
-        template_file = self.template_files[self.current_idx]
-        self.current_idx = (self.current_idx + 1) % len(self.template_files)
-        with open(template_file, 'r', encoding='utf-8') as f:
-            template = f.read()
-
-        return self._get_tokens(template)
-
-    def _get_tokens(self, text_template):
-        big_pieces = re.split(
-            '(\<[^\>]*\>|\t|\n| |\{[^\}]*\}|%%\w+|\|)', text_template)
-        tokens = []
-
-        for piece in big_pieces:
-            if re.findall('[\u0E00-\u0E0F]+', piece):
-                tokens.extend(attacut.tokenize(piece))
-            elif piece == '':
-                continue
-            else:
-                tokens.append(piece)
-        return tokens
-
-
 def maybe_get_new_font(old_font=None):
     """
     Get new font or return old font with 80% probability
@@ -210,7 +175,7 @@ def maybe_get_new_font(old_font=None):
     return fonts['handwriting'].get(random.randint(25, 34))
 
 
-def _main(file_saver, text_template_generator):
+def generate_images(file_saver, text_template_generator):
     # create blank white paper
     image = Image.new('RGB', (image_width, image_height,), '#fff')
     draw = ImageDraw.Draw(image,)
@@ -614,150 +579,3 @@ def _main(file_saver, text_template_generator):
         file_saver.save(aug_image, aug_bbox
                         .remove_out_of_image_fraction(0.9)
                         .clip_out_of_image())
-
-
-class FileSaver:
-    def __init__(self, image_dir, localization_dir):
-        pass
-
-    def save(self, image, bboxes, segmap=None,):
-        pass
-
-    def clean(self, json_path):
-        pass
-
-
-class TextFileSaver(FileSaver):
-    def __init__(self, image_dir, localization_dir):
-        self.image_dir = image_dir
-
-        if not os.path.exists(self.image_dir):
-            os.makedirs(self.image_dir)
-
-        self.localization_dir = localization_dir
-
-        if not os.path.exists(self.localization_dir):
-            os.makedirs(self.localization_dir)
-
-        self.image_id = 0
-        self.data_list = []
-
-    def save(self, image, bboxes, segmap=None,):
-        image_name = f'img_{self.image_id}'
-        cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
-        cv2.imwrite(os.path.join(self.image_dir, image_name +
-                    '_mask'+'.png'), segmap.get_arr())
-        # cv2.imwrite(os.path.join(image_dir, image_name+'_keypoint'+'.jpg'), aug_kp.draw_on_image(aug_image,size=10))
-
-        fp = open(os.path.join(self.localization_dir,
-                  'gt_'+image_name+'.txt'), 'w')
-        for bbox in bboxes.bounding_boxes:
-            for point in bbox.to_keypoints():
-                fp.write(str(point.x_int)+',')
-                fp.write(str(point.y_int)+',')
-
-            fp.write(bbox.label)
-            fp.write('\n')
-        fp.close()
-
-        self.data_list.append({
-            'img_path': f'{image_name}.jpg',
-            'height': image.shape[0],
-            'width': image.shape[1],
-            'instances': [
-                {
-                    'bbox': [bbox.x1_int, bbox.y1_int, bbox.x2_int, bbox.y2_int],
-                    'text': bbox.label,
-                    'bbox_label': 0,  # text
-                    'ignore': False,
-                } for bbox in bboxes.bounding_boxes
-            ]
-        })
-
-        self.image_id += 1
-
-    def clean(self, json_path):
-        return
-
-
-class MMOCRFileSaver(FileSaver):
-    """https://mmocr.readthedocs.io/en/dev-1.x/api/generated/mmocr.datasets.OCRDataset.html#mmocr.datasets.OCRDataset"""
-
-    def __init__(self, image_dir, localization_dir):
-        self.image_dir = image_dir
-
-        if not os.path.exists(self.image_dir):
-            os.makedirs(self.image_dir)
-
-        self.localization_dir = localization_dir
-
-        if not os.path.exists(self.localization_dir):
-            os.makedirs(self.localization_dir)
-
-        self.image_id = 0
-        self.data_list = []
-
-    def save(self, image, bboxes, segmap=None,):
-        image_name = f'img_{self.image_id}'
-        cv2.imwrite(os.path.join(self.image_dir, image_name+'.jpg'), image)
-        padding = 1
-        if segmap is not None:
-            cv2.imwrite(os.path.join(self.image_dir,
-                                     image_name + '_mask'+'.png'), segmap.get_arr())
-
-        text_instances = [
-            {
-                'bbox': [bbox.x1_int-padding, bbox.y1_int-padding,
-                         bbox.x2_int+padding, bbox.y2_int+padding],
-                'polygon': self._get_polygon(bbox.to_keypoints()),
-                'text': bbox.label,
-                'bbox_label': 0,  # text
-                'ignore': False,
-            } for bbox in bboxes.bounding_boxes
-        ]
-
-        self.data_list.append({
-            'img_path': f'{image_name}.jpg',
-            'height': image.shape[0],
-            'width': image.shape[1],
-            'instances': text_instances
-        })
-
-        self.image_id += 1
-
-    def _get_polygon(self, keypoints):
-        """Get polygon from keypoints."""
-
-        points = []
-        for point in keypoints:
-            points.append(point.x_int)
-            points.append(point.y_int)
-        assert len(points) == 8
-        return points
-
-    def clean(self, json_path):
-        with open(json_path, 'w') as fp:
-            json.dump(dict(metainfo=dict(dataset_type='TextDetDataset',
-                                         task_name='textdet',
-                                         category=[dict(id=0, name='text')]),
-                           data_list=self.data_list), fp, ensure_ascii=False,)
-
-
-if __name__ == '__main__':
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('output_dir', type=str, default='vc-dataset')
-    argparser.add_argument('num', type=int,)
-
-    args = argparser.parse_args()
-    output_dir = os.path.join('output', args.output_dir)
-    file_saver = MMOCRFileSaver(os.path.join(output_dir, 'imgs'),
-                                os.path.join(output_dir))
-
-    template_generator = TextTemplate()
-    try:
-        for x in trange(args.num):
-            _main(file_saver, template_generator)
-    except KeyboardInterrupt:
-        pass
-
-    file_saver.clean(os.path.join(output_dir, 'train.json'))
