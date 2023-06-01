@@ -53,8 +53,6 @@ def augment_image(image):
         agh.LowInkPeriodicLines(p=0.1),
         agh.BleedThrough(intensity_range=(0.1, 0.3), p=0.8),
         agh.DirtyDrum(line_concentration=0.05, line_width_range=(1, 2), p=0.1),
-        agh.Scribbles(scribbles_size_range=(50, 200),
-                      scribbles_count_range=(3, 5), p=0.1),
     ])(image)[0]
 
 
@@ -145,6 +143,8 @@ def unit_process(val):
 
 
 def thai_num2text(number):
+    if number == 0:
+        return 'ศูนย์'
     s_number = str(number)[::-1]
     n_list = [s_number[i:i + 6].rstrip("0")
               for i in range(0, len(s_number), 6)]
@@ -218,8 +218,9 @@ def generate_images(file_saver, text_template_generator):
             elif 'province' in token:
                 token = tambon.CHANGWAT_T.item().replace('จ.', '')
             elif 'lastname_th' in token:
-                token = random.choice(last_names_th) if random.random(
-                ) > .5 else text_faker.last_name()
+                token = (random.choice(last_names_th)
+                         if random.random() > .5
+                         else text_faker.last_name())
             elif 'party_name_th' in token:
                 token = random.choice(political_parties_th)
             elif 'name_th' in token:
@@ -229,7 +230,7 @@ def generate_images(file_saver, text_template_generator):
             elif 'title_th' in token:
                 token = text_faker.prefix()
             elif 'number' in token:
-                if random.random() > .8:
+                if random.random() > .5:
                     number = 0
                 # one digit number
                 elif random.random() > .5:
@@ -248,7 +249,10 @@ def generate_images(file_saver, text_template_generator):
                     dot_count = 10
 
                 if 'reading' in token:
+                    t_number = number
                     number = thai_num2text(number)
+                    if number.strip() == '':
+                        print(t_number)
                     dot_count = len(number) + random.randint(20, 40)
                 elif 'th' in token:
                     number = str(number)
