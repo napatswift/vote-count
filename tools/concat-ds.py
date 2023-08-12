@@ -1,3 +1,13 @@
+"""
+This code concatenates two image datasets and saves
+the concatenated dataset to a new directory. The script
+first reads the two datasets from JSON files.
+It then moves the images in the datasets to
+a new directory and updates the paths to the images
+in the datasets. Finally, it concatenates the two datasets
+and saves the concatenated dataset to a new JSON file.
+"""
+
 import json
 import argparse
 import os
